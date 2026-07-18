@@ -12,6 +12,7 @@ const deadlineMs = 180000;
 const serverErrors = [];
 const phases = new Set();
 const seenCommentEvents = new Set();
+const seenCinematicEvents = new Set();
 const seenSuits = new Set();
 const allowedSuits = new Set(['apple','corn','cabbage','mud']);
 let humanPlays = 0;
@@ -73,6 +74,21 @@ function handleState(state){
   assert.strictEqual(state.shootThePigEnabled, true);
   assert.strictEqual(state.shootThePigPerPlayerLimit, 1);
   assert.ok((state.players || []).every(p=>typeof p.shootUsed === 'boolean'));
+  if(state.shootPigEvent){ assert.ok(state.shootPigEvent.id); seenCinematicEvents.add('shoot'); }
+  if(state.madPigEvent){
+    assert.ok(state.madPigEvent.id && state.madPigEvent.card?.suit==='mud' && String(state.madPigEvent.card?.rank)==='11');
+    seenCinematicEvents.add(`mad-${state.madPigEvent.source}`);
+  }
+  if(state.pairCleanEvent){
+    assert.ok(state.pairCleanEvent.id && state.pairCleanEvent.rank);
+    if(state.pairCleanEvent.source==='initial') assert.strictEqual(state.pairCleanEvent.cards,null);
+    else assert.strictEqual(state.pairCleanEvent.cards?.length,2);
+    seenCinematicEvents.add(`pair-${state.pairCleanEvent.source}`);
+  }
+  if(state.pendingPick?.result){
+    assert.ok(state.pendingPick.result.eventId,'pick result needs a stable cinematic event ID');
+    if(state.pendingPick.result.drawn?.joker) seenCinematicEvents.add('baba');
+  }
 
   if(state.phase === 'lobby'){
     if(state.players.length < 4) send({type:'addCpu'});
@@ -146,6 +162,7 @@ function handleState(state){
       humanTargetSelections,
       humanPairChoices,
       commentEvents:[...seenCommentEvents].sort(),
+      cinematicEvents:[...seenCinematicEvents].sort(),
       seenSuits:[...seenSuits].sort(),
       totals:state.players.map(p=>p.final.total)
     }));

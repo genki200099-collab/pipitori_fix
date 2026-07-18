@@ -40,7 +40,8 @@ const exportSource = `${source}\n;globalThis.__rulesTestApi={
   normalizePenaltyMode, handPenaltyForRoom, madPigPenaltyForRoom,
   playerHasMadPigInHand, playerHasUsedShootThePig, playerCanShootThePig,
   applyShootThePigForRound, makeRoundSnapshot, cpuCardHandRisk,
-  roomPenaltyLabel, publicState, score, createRoom, rooms
+  roomPenaltyLabel, publicState, score, createRoom, rooms,
+  registerMadPigEvent, registerPairCleanEvent, pickResultDisplayMs
 };`;
 vm.runInNewContext(exportSource, sandbox, {filename:serverPath});
 const api = sandbox.__rulesTestApi;
@@ -59,6 +60,40 @@ const baseRoom = (players, extra={})=>({
   round:1, totalRounds:3, shootPigRoundResults:{}, shootPigEvent:null,
   log:[], commentary:[], ...extra
 });
+
+// Cinematic event payloads are deterministic game state, deduplicated by ID,
+// and do not reveal initial-pair suits that were previously private.
+{
+  const players=[basePlayer('A'),basePlayer('B'),basePlayer('C'),basePlayer('D')];
+  const room=baseRoom(players,{
+    code:'FX01',hostId:'A',phase:'playing',round:2,totalRounds:3,
+    lead:0,current:null,leadSuit:null,trick:[],pendingPick:null,
+    initialPairDone:[],passDone:[],passSelections:{},lastTrick:null
+  });
+  const mad=card('mud',11,'mad-event');
+  const madEvent=api.registerMadPigEvent(room,1,mad,'trick');
+  assert.ok(madEvent.id.startsWith('mad-2-1-'));
+  assert.strictEqual(madEvent.ownerName,'B');
+  assert.strictEqual(madEvent.source,'trick');
+  assert.strictEqual(madEvent.card.id,'mad-event');
+
+  const pair=[card('apple',7,'pair-a'),card('corn',7,'pair-b')];
+  const visiblePair=api.registerPairCleanEvent(room,2,pair,'pick',true);
+  assert.ok(visiblePair.id.startsWith('pair-2-2-'));
+  assert.deepStrictEqual([...visiblePair.cards].map(c=>c.id),['pair-a','pair-b']);
+  const hiddenPair=api.registerPairCleanEvent(room,0,[mad,card('apple',11,'hidden-11')],'initial',false);
+  assert.strictEqual(hiddenPair.cards,null);
+  assert.strictEqual(hiddenPair.rank,'11');
+  assert.strictEqual(hiddenPair.containsMadPig,false);
+
+  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:joker()}),5000);
+  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:card('apple',4),paired:true}),3400);
+  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:mad}),4200);
+  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:card('cabbage',4)}),2600);
+  const publicView=api.publicState(room,'A');
+  assert.strictEqual(publicView.madPigEvent.id,madEvent.id);
+  assert.strictEqual(publicView.pairCleanEvent.cards,null);
+}
 
 // New missing/unknown values fall back to the adopted default; legacy options remain valid.
 assert.strictEqual(api.normalizePenaltyMode(undefined), 'mud6');
@@ -112,7 +147,7 @@ assert.strictEqual(api.normalizePenaltyMode('spadeSuit'), 'mudSuit'); // old-cli
   assert.strictEqual(api.cpuCardHandRisk(room,card('mud',7)), 6);
   assert.strictEqual(api.cpuCardHandRisk(room,card('apple',7)), 3);
   assert.strictEqual(api.cpuCardHandRisk(room,card('mud',11)), 13);
-  assert.strictEqual(api.roomPenaltyLabel(room), '泥-6/他-3');
+  assert.strictEqual(api.roomPenaltyLabel(room), '💧-6/他-3');
 }
 
 // The final score uses exactly the same default decomposition; there is no weakest/pick bonus.
@@ -291,7 +326,7 @@ assert.strictEqual(api.normalizePenaltyMode('spadeSuit'), 'mudSuit'); // old-cli
 // Static UI contract: selected option, standard preset, help copy, and no weakest +3 bonus.
 {
   const html=fs.readFileSync(htmlPath,'utf8');
-  assert.match(html,/<option value="mud6" selected>リンゴ・トウモロコシ・キャベツは-3点、通常の泥は-6点<\/option>/);
+  assert.match(html,/<option value="mud6" selected>リンゴ・トウモロコシ・キャベツは-3点、通常の💧は-6点<\/option>/);
   assert.match(html,/values:\{rounds:'3',penaltyMode:'mud6'.*pickTargetCount:'2'.*passThreeEnabled:'false'.*initialPairDiscardEnabled:'false'/);
   assert.match(html,/両方が手札にある状態/);
   assert.match(html,/各プレイヤーが発動できるのは1ゲームに1回まで/);
@@ -299,7 +334,7 @@ assert.strictEqual(api.normalizePenaltyMode('spadeSuit'), 'mudSuit'); // old-cli
   assert.match(html,/🍎リンゴ/);
   assert.match(html,/🌽トウモロコシ/);
   assert.match(html,/🥬キャベツ/);
-  assert.match(html,/泥（灰）|灰色・高失点スート/);
+  assert.match(html,/💧ぬかるみ（灰）|灰色・高失点スート/);
   assert.match(html,/\.playing-card\.apple \.rank[^\n]*#c31f36/);
   assert.match(html,/\.playing-card\.corn \.rank[^\n]*#7d5a00/);
   assert.match(html,/\.playing-card\.cabbage \.rank[^\n]*#176b34/);

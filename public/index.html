@@ -3192,6 +3192,8 @@ body.modern-game-ui .cardbox .cpu-character-note{
   font-size:13px;
   text-align:center;
 }
+.create-feedback[data-tone="error"]{background:#fff0f2;border-color:#e8a3ae;color:#8c2032}
+.create-feedback[data-tone="success"]{background:#ebfff5;border-color:#94d8b7;color:#17633e}
 .room-info-panel{
   margin-top:12px;
   padding:14px;
@@ -4140,11 +4142,1157 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
 .suit-flavor-map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 2px}.suit-flavor{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-items:center;column-gap:8px;padding:9px 10px;border:1px solid rgba(72,33,52,.12);border-radius:15px;background:rgba(255,255,255,.82);box-shadow:0 6px 14px rgba(72,33,52,.05)}.suit-flavor>i{grid-row:1/3;font-style:normal;font-size:25px;line-height:1}.suit-flavor>b{font-size:11px;color:#472136;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.suit-flavor>small{font-size:8px;font-weight:900}.suit-flavor.apple{border-color:rgba(195,31,54,.28)}.suit-flavor.apple small{color:#c31f36}.suit-flavor.corn{border-color:rgba(125,90,0,.3)}.suit-flavor.corn small{color:#7d5a00}.suit-flavor.cabbage{border-color:rgba(23,107,52,.28)}.suit-flavor.cabbage small{color:#176b34}.suit-flavor.mud{border-color:rgba(79,89,96,.36);background:linear-gradient(145deg,#fff,#eef0f2)}.suit-flavor.mud i,.suit-flavor.mud small{color:#4f5960}.suit-flavor.mud i{display:grid;place-items:center;width:29px;height:29px;border-radius:46% 54% 50% 43%;background:#737d84;color:#fff;font-size:12px;font-weight:1000;transform:rotate(-7deg)}
 @media (max-width:640px){.suit-flavor-map{grid-template-columns:repeat(2,minmax(0,1fr))}.suit-flavor{padding:8px}.suit-flavor>i{font-size:22px}}
 
+/* =========================================================
+   Mobile playability & contrast v6
+   旧ロビー用の淡色・重なり指定をゲーム画面では完全に分離する。
+   ========================================================= */
+body.gameplay-mode.modern-game-ui,
+body.gameplay-mode.modern-game-ui #app{
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+body.gameplay-mode.modern-game-ui .game-status.status>div{
+  min-height:36px;
+  padding:4px 9px!important;
+  border:1px solid #36565b!important;
+  border-radius:11px!important;
+  background:#0a2930!important;
+  color:#c5e1dc!important;
+  box-shadow:0 5px 14px rgba(0,0,0,.24)!important;
+}
+body.gameplay-mode.modern-game-ui .game-hud .game-status.status{
+  display:flex!important;
+  grid-template-columns:none!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex-wrap:nowrap!important;
+  min-width:0!important;
+  height:auto!important;
+  max-height:100%!important;
+  overflow:hidden!important;
+}
+body.gameplay-mode.modern-game-ui .game-status.status span{color:#c5e1dc!important}
+body.gameplay-mode.modern-game-ui .game-status.status b{color:#fff!important}
+body.gameplay-mode.modern-game-ui .game-round-status.round-status{
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#103f3d!important;
+  color:#fff!important;
+  box-shadow:inset 0 -1px 0 rgba(255,255,255,.13)!important;
+}
+body.gameplay-mode.modern-game-ui .game-round-status .round-big{color:#fff!important}
+body.gameplay-mode.modern-game-ui .game-round-status .setting-chips span{
+  border-color:#66807e!important;
+  background:#f5f1e7!important;
+  color:#3d2430!important;
+  box-shadow:none!important;
+}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .game-round-status.round-status{position:relative!important}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .game-round-status .round-start{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:max-content!important;
+  max-width:calc(100vw - 220px)!important;
+  min-height:28px!important;
+  margin:0!important;
+  padding:4px 12px!important;
+  transform:translate(-50%,-50%)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  overflow:hidden!important;
+  border-radius:999px!important;
+  white-space:nowrap!important;
+  font-size:10px!important;
+}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .game-round-status .round-start .round-title{
+  flex:0 0 auto!important;
+  font-size:12px!important;
+  white-space:nowrap!important;
+}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .game-round-status .round-start>div:last-child{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+body.gameplay-mode.modern-game-ui .table-players .player{
+  min-height:64px!important;
+  border:1px solid #49656a!important;
+  background:linear-gradient(145deg,#0b3137,#08272e)!important;
+  color:#fff!important;
+  box-shadow:0 9px 22px rgba(0,0,0,.34)!important;
+  opacity:1!important;
+}
+body.gameplay-mode.modern-game-ui .table-players .player.active{
+  border-color:#f1c75b!important;
+  box-shadow:0 0 0 3px rgba(241,199,91,.22),0 10px 24px rgba(0,0,0,.38)!important;
+}
+body.gameplay-mode.modern-game-ui .table-players .name{color:#fff!important;text-shadow:0 1px 1px rgba(0,0,0,.45)}
+body.gameplay-mode.modern-game-ui .table-players .player-stats span{
+  border:1px solid rgba(255,255,255,.12)!important;
+  background:#173f44!important;
+  color:#e9fffa!important;
+}
+body.gameplay-mode.modern-game-ui #table.modern-table.table{
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+body.gameplay-mode.modern-game-ui #message.table-message.message{
+  border:1px solid #577277!important;
+  border-left:4px solid #f1c75b!important;
+  background:#082a30!important;
+  color:#fff!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.34)!important;
+  text-shadow:none!important;
+}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body{
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body:before{display:none!important}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body b{color:#ffe08a!important}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body p{color:#fff!important;text-shadow:none!important}
+body.gameplay-mode.modern-game-ui #table .turn-order-bar{
+  border-color:#557078!important;
+  background:#092d33!important;
+  color:#fff!important;
+  box-shadow:0 5px 15px rgba(0,0,0,.24)!important;
+}
+body.gameplay-mode.modern-game-ui #table .turn-order-bar .small,
+body.gameplay-mode.modern-game-ui #table .turn-order-bar .arrowtxt{color:#c9e5df!important}
+body.gameplay-mode.modern-game-ui #table .turn-order-bar .ord{
+  border-color:#557078!important;
+  background:#123c42!important;
+  color:#fff!important;
+}
+body.gameplay-mode.modern-game-ui #table .turn-order-bar .ord.current{
+  border-color:#f1c75b!important;
+  background:#51431b!important;
+  color:#fff7d0!important;
+}
+body.gameplay-mode.modern-game-ui #table .turn-order-bar .ord.done{
+  border-color:#5b8d7a!important;
+  background:#173f39!important;
+  color:#e2f5ef!important;
+}
+body.gameplay-mode.modern-game-ui.ui-phone #table .play-trail{
+  display:none!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .notice{
+  border-color:#567075!important;
+  background:#0a3438!important;
+  color:#fff!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.3)!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .notice.warning{
+  border-color:#ff8ba0!important;
+  background:#661d32!important;
+  color:#fff!important;
+}
+body.gameplay-mode.modern-game-ui .game-screen.is-pick-mode .table-players{display:none!important}
+body.gameplay-mode.modern-game-ui .game-screen.is-pick-mode .commentary-layer,
+body.gameplay-mode.modern-game-ui .game-screen.is-pick-mode .last-trick-layer,
+body.gameplay-mode.modern-game-ui .game-screen.is-pick-mode #message{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+}
+body.gameplay-mode.modern-game-ui #table.modern-table.pick-mode{
+  border:1px solid #557078!important;
+  border-radius:22px!important;
+  background:linear-gradient(145deg,#0b3439,#071f2c 58%,#171b31)!important;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.035),0 14px 35px rgba(0,0,0,.35)!important;
+  overflow:hidden!important;
+}
+body.gameplay-mode.modern-game-ui .pick-stage{
+  border:0!important;
+  background:linear-gradient(145deg,#0b3439,#071f2c 58%,#171b31)!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+body.gameplay-mode.modern-game-ui .pick-stage:before{color:rgba(226,245,241,.055)!important}
+body.gameplay-mode.modern-game-ui .pick-stage .pick-person{
+  border-color:#557078!important;
+  background:#0b2c33!important;
+  color:#cbe8e2!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.28)!important;
+}
+body.gameplay-mode.modern-game-ui .pick-stage .pick-person>div:last-child{color:#fff!important}
+body.gameplay-mode.modern-game-ui .pick-stage .pick-status{
+  border-color:#6c8589!important;
+  background:#061f26!important;
+  color:#fff!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.26)!important;
+}
+body.gameplay-mode.modern-game-ui .pick-stage .pair-choice,
+body.gameplay-mode.modern-game-ui .pick-stage .pick-target-panel{
+  border:0!important;
+  background:transparent!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+body.gameplay-mode.modern-game-ui .pick-stage .center-note,
+body.gameplay-mode.modern-game-ui .pick-stage .small,
+body.gameplay-mode.modern-game-ui .pick-target-card .small,
+body.gameplay-mode.modern-game-ui .pair-card-btn .small{color:#e2f5f1!important}
+body.gameplay-mode.modern-game-ui .pick-drawn-card{display:flex;justify-content:center;flex:0 0 auto}
+body.gameplay-mode.modern-game-ui .suit-flavor.mud i{
+  background:#e8edf0!important;
+  color:#38464f!important;
+  font-size:20px!important;
+  transform:none!important;
+}
+
+@media (max-width:720px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen{
+    --card-w:60px;
+    --card-h:92px;
+    --hand-step:67px;
+    --slot-x:54px;
+    --slot-y:30px;
+    grid-template-rows:46px 32px minmax(0,1fr) 156px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-hud{
+    gap:6px!important;
+    padding:5px max(7px,env(safe-area-inset-left)) 5px max(7px,env(safe-area-inset-right))!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-brand span{width:32px;height:32px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-status.status{gap:4px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-status .phase-status,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-status .connection-status,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-status .lead-status{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-status.status>div{
+    min-width:68px!important;
+    min-height:34px!important;
+    padding:3px 7px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-status.status span{font-size:7px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-status.status b{font-size:11px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hud-button{min-height:34px;padding:6px 8px!important;font-size:9px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-round-status.round-status{
+    height:32px!important;
+    padding:3px 7px!important;
+    gap:5px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-round-status .round-big{font-size:12px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-round-status .setting-chips{margin:0!important;gap:4px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-round-status .setting-chips span{font-size:8px!important;padding:2px 5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-round-status .round-start{
+    position:fixed!important;
+    left:50%!important;
+    top:48px!important;
+    width:max-content!important;
+    max-width:calc(100vw - 16px)!important;
+    min-height:26px!important;
+    margin:0!important;
+    padding:4px 10px!important;
+    border-radius:999px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:6px!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+    font-size:8px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-round-status .round-start .round-title{font-size:10px!important;white-space:nowrap!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-arena{margin:4px!important;border-radius:18px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-arena:after{inset:6px!important;border-radius:13px!important}
+
+  /* 対戦相手3人を上端の専用レールへ。手札欄と重なる自分枠は表示しない。 */
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player{
+    top:5px!important;
+    width:calc((100% - 24px)/3)!important;
+    max-width:112px!important;
+    height:48px!important;
+    min-height:48px!important;
+    padding:4px 5px!important;
+    border-radius:12px!important;
+    grid-template-columns:28px minmax(0,1fr)!important;
+    grid-template-rows:auto auto!important;
+    column-gap:4px!important;
+    transform:none!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player.position-left{left:5px!important;right:auto!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player.position-top{left:50%!important;transform:translateX(-50%)!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player.position-right{left:auto!important;right:5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player.position-bottom{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .pig,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .pig img{width:28px!important;height:28px!important;border-radius:8px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .name{font-size:8.5px!important;line-height:1.15!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player-stats{gap:2px!important;overflow:hidden}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player-stats span{font-size:6.5px!important;padding:1px 3px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player-stats span:nth-child(n+2){display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .turn-mini,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .you-mini,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .disconnect-mini,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .shoot-used-mini{font-size:6px!important;padding:1px 3px!important}
+
+  /* 中央はカードだけ、下端は実況と進行メッセージの2段レール。 */
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #table.modern-table.playing-now{
+    position:absolute!important;
+    inset:58px 8px 103px!important;
+    width:auto!important;
+    height:auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-center{
+    width:60px!important;
+    height:60px!important;
+    padding:6px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-center .clockwise{font-size:17px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-center b{font-size:8px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-center span{font-size:6.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-slot-label{max-width:62px!important;font-size:6.5px!important;padding:2px 4px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer{
+    left:6px!important;
+    right:6px!important;
+    top:auto!important;
+    bottom:50px!important;
+    width:auto!important;
+    height:45px!important;
+    opacity:1!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-bubble{
+    height:45px!important;
+    grid-template-columns:28px minmax(0,1fr)!important;
+    gap:5px!important;
+    padding:4px 6px!important;
+    border-color:#59757a!important;
+    border-radius:10px!important;
+    background:#092b31!important;
+    overflow:hidden!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .commentary-avatar{
+    width:28px!important;
+    height:28px!important;
+    border-radius:7px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-cue,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-tag{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body b{font-size:7px!important;color:#ffe08a!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body p{
+    margin:1px 0 0!important;
+    color:#fff!important;
+    font-size:8.5px!important;
+    line-height:1.2!important;
+    -webkit-line-clamp:2!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #message.table-message.message{
+    left:6px!important;
+    right:6px!important;
+    bottom:6px!important;
+    width:auto!important;
+    max-width:none!important;
+    max-height:40px!important;
+    min-height:36px!important;
+    margin:0!important;
+    padding:6px 8px!important;
+    border-radius:10px!important;
+    transform:none!important;
+    font-size:10px!important;
+    line-height:1.25!important;
+    text-align:left!important;
+    display:-webkit-box!important;
+    -webkit-box-orient:vertical!important;
+    -webkit-line-clamp:2!important;
+    overflow:hidden!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .last-trick-layer{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen.is-review-mode .commentary-layer,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen.is-review-mode #message{visibility:hidden!important;opacity:0!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-banner{
+    top:auto!important;
+    bottom:-84px!important;
+    width:calc(100vw - 24px)!important;
+    max-width:none!important;
+    padding:7px 9px!important;
+    border-radius:10px!important;
+    background:#082a30!important;
+    color:#fff!important;
+    font-size:9px!important;
+    text-align:center!important;
+  }
+
+  /* 手札は重ねず、常にカード全面を見せる横スクロール。 */
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock{
+    padding:3px 0 max(3px,env(safe-area-inset-bottom))!important;
+    overflow:hidden!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock-title{
+    left:10px!important;
+    top:6px!important;
+    color:#c5e1dc!important;
+    font-size:8px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .hand{
+    gap:7px!important;
+    justify-content:flex-start!important;
+    padding:25px 10px 4px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scroll-padding-inline:10px!important;
+    scroll-snap-type:x mandatory!important;
+    overscroll-behavior-inline:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    touch-action:pan-x!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .hand-card,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .hand-card:last-child{
+    flex:0 0 var(--card-w)!important;
+    width:var(--card-w)!important;
+    height:var(--card-h)!important;
+    scroll-snap-align:center!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .hand-card .playing-card{
+    width:var(--card-w)!important;
+    min-width:var(--card-w)!important;
+    height:var(--card-h)!important;
+    opacity:1!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .hand-card:disabled .playing-card{
+    opacity:.74!important;
+    filter:saturate(.72) brightness(.88)!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .hand-card:not(:disabled) .playing-card{
+    border-color:#ffdc63!important;
+    box-shadow:0 0 0 2px rgba(255,220,99,.44),0 8px 18px rgba(0,0,0,.34)!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .playing-card .rank{font-size:16px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .playing-card .suit{font-size:16px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .playing-card .art{font-size:22px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-dock .playing-card .suit-name{font-size:7px!important}
+
+  /* ピック専用画面は卓上ウインドウを排除して、選択カードを全面表示。 */
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #table.modern-table.pick-mode{
+    position:absolute!important;
+    inset:7px!important;
+    width:auto!important;
+    height:auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-stage{
+    justify-content:flex-start!important;
+    gap:8px!important;
+    padding:10px 9px 12px!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-stage>h3{font-size:12px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-main{
+    position:static!important;
+    grid-template-columns:minmax(82px,1fr) 42px minmax(82px,1fr)!important;
+    width:100%!important;
+    gap:5px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-person{
+    min-height:48px!important;
+    grid-template-columns:30px minmax(0,1fr)!important;
+    padding:5px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-person .big,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-person .big img{width:30px!important;height:30px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-person>div:last-child{font-size:9px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-big-arrow{font-size:18px!important;transform:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-status{max-width:100%!important;font-size:10px!important;padding:6px 9px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-target-panel,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pair-choice{width:100%!important;max-height:none!important;overflow:hidden!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-hand,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-target-cards,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pair-cards{
+    width:100%!important;
+    min-height:112px!important;
+    justify-content:flex-start!important;
+    gap:9px!important;
+    padding:10px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scroll-snap-type:x mandatory!important;
+    scroll-padding-inline:10px!important;
+    overscroll-behavior-inline:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-hand[data-card-count="1"],
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-hand[data-card-count="2"],
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-hand[data-card-count="3"],
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pair-cards[data-card-count="1"],
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pair-cards[data-card-count="2"],
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pair-cards[data-card-count="3"]{justify-content:center!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-card,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-target-card,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pair-card-btn{
+    flex:0 0 var(--card-w)!important;
+    width:var(--card-w)!important;
+    scroll-snap-align:center!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-card .playing-card,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pick-target-card .playing-card,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .pair-card-btn .playing-card{
+    width:var(--card-w)!important;
+    min-width:var(--card-w)!important;
+    height:var(--card-h)!important;
+  }
+}
+
+@media (max-width:360px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen{
+    --card-w:56px;
+    --card-h:86px;
+    --hand-step:62px;
+    --slot-x:48px;
+    --slot-y:26px;
+    grid-template-rows:44px 30px minmax(0,1fr) 150px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player{height:45px!important;min-height:45px!important;grid-template-columns:25px minmax(0,1fr)!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .pig,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .pig img{width:25px!important;height:25px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #table.modern-table.playing-now{inset:54px 6px 97px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer{bottom:47px!important;height:42px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-bubble{height:42px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-banner{bottom:-80px!important}
+}
+
+@media (max-height:520px) and (orientation:landscape){
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-screen{
+    --card-w:48px;
+    --card-h:72px;
+    --hand-step:52px;
+    --slot-x:64px;
+    --slot-y:17px;
+    grid-template-rows:38px 24px minmax(0,1fr) 108px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-status .phase-status,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-status .connection-status,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-status .lead-status{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-status.status{gap:4px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-status.status>div{min-width:78px!important;min-height:30px!important;padding:2px 6px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-status.status span{font-size:6px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-status.status b{font-size:9px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-round-status.round-status{height:24px!important;padding:2px 6px!important;margin:0!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-round-status .round-big{font-size:10px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-round-status .round-start{
+    position:fixed!important;
+    left:50%!important;
+    top:39px!important;
+    width:max-content!important;
+    max-width:70vw!important;
+    min-height:21px!important;
+    margin:0!important;
+    padding:2px 9px!important;
+    border-radius:999px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:5px!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+    font-size:7px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-round-status .round-start .round-title{font-size:9px!important;white-space:nowrap!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-arena{margin:3px 5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .player{
+    top:3px!important;
+    width:104px!important;
+    height:38px!important;
+    min-height:38px!important;
+    padding:3px 4px!important;
+    grid-template-columns:25px minmax(0,1fr)!important;
+    transform:none!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .player.position-left{left:4px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .player.position-top{left:50%!important;transform:translateX(-50%)!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .player.position-right{right:4px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .player.position-bottom{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .pig,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .pig img{width:25px!important;height:25px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .name{font-size:7.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .player-stats span{font-size:6px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .player-stats span:nth-child(n+2){display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape #table.modern-table.playing-now{
+    position:absolute!important;
+    inset:44px 8px 46px!important;
+    width:auto!important;
+    height:auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-width:none!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-center{width:46px!important;height:46px!important;padding:4px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-slot-label{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer{
+    left:4px!important;right:auto!important;top:auto!important;bottom:4px!important;width:43%!important;height:32px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-bubble{
+    height:32px!important;grid-template-columns:23px minmax(0,1fr)!important;gap:4px!important;padding:3px 5px!important;background:#092b31!important;overflow:hidden!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .commentary-avatar{width:23px!important;height:23px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-cue,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-tag{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-body b,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-body p{font-size:6.5px!important;line-height:1.1!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape #message.table-message.message{
+    left:auto!important;right:4px!important;bottom:4px!important;width:54%!important;max-width:none!important;min-height:32px!important;max-height:32px!important;margin:0!important;padding:5px 7px!important;transform:none!important;font-size:8px!important;line-height:1.2!important;text-align:left!important;overflow:hidden!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .last-trick-layer{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-screen.is-review-mode .commentary-layer,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-screen.is-review-mode #message{visibility:hidden!important;opacity:0!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-banner{top:auto!important;bottom:-34px!important;width:calc(100vw - 20px)!important;max-width:none!important;font-size:8px!important;padding:5px 8px!important;background:#082a30!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock .hand{
+    gap:4px!important;justify-content:flex-start!important;padding:21px 8px 3px!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-snap-type:x mandatory!important;touch-action:pan-x!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock .hand-card,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock .hand-card:last-child{
+    flex:0 0 var(--card-w)!important;width:var(--card-w)!important;height:var(--card-h)!important;scroll-snap-align:center!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock .hand-card .playing-card{
+    width:var(--card-w)!important;min-width:var(--card-w)!important;height:var(--card-h)!important;opacity:1!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock .hand-card:disabled .playing-card{opacity:.74!important;filter:saturate(.72) brightness(.88)!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape #table.modern-table.pick-mode{
+    position:absolute!important;inset:4px!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-stage{justify-content:center!important;gap:4px!important;padding:5px 8px!important;overflow:auto!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-main{position:static!important;width:min(100%,360px)!important;grid-template-columns:1fr 44px 1fr!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-status{margin:0!important;font-size:8px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-hand,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-target-cards,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pair-cards{max-width:100%!important;min-height:78px!important;overflow-x:auto!important;overflow-y:hidden!important;justify-content:flex-start!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-card,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-target-card,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pair-card-btn{flex:0 0 var(--card-w)!important;width:var(--card-w)!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-card .playing-card,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pick-target-card .playing-card,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .pair-card-btn .playing-card{width:var(--card-w)!important;min-width:var(--card-w)!important;height:var(--card-h)!important}
+}
+
+/* Keep the pick table exclusive: later phone message rules must not revive it. */
+body.gameplay-mode.modern-game-ui .game-screen.is-pick-mode #message.table-message.message,
+body.gameplay-mode.modern-game-ui.ui-phone .game-screen.is-pick-mode #message.table-message.message{
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+}
+
+/* The mud suit is an icon everywhere; its written name remains available beside it. */
+.suit-flavor.mud i{
+  background:#e7edf0!important;
+  color:#34424b!important;
+  font-size:20px!important;
+  font-style:normal!important;
+  transform:none!important;
+}
+
+/* Fan hand, selected-match rules & resilient reconnect v7 */
+.connection-recovery[hidden]{display:none!important}
+.connection-recovery{
+  position:fixed;
+  z-index:210;
+  top:max(68px,calc(env(safe-area-inset-top) + 54px));
+  left:50%;
+  width:min(560px,calc(100vw - 24px));
+  min-height:58px;
+  transform:translateX(-50%);
+  display:grid;
+  grid-template-columns:38px minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  padding:9px 10px;
+  border:1px solid rgba(255,224,138,.72);
+  border-radius:16px;
+  background:#082a30;
+  color:#fff;
+  box-shadow:0 18px 50px rgba(0,0,0,.46),0 0 0 3px rgba(255,224,138,.12);
+}
+.connection-recovery[data-mode="offline"]{border-color:#8fc7ff;background:#102b45}
+.connection-recovery[data-mode="elsewhere"]{border-color:#c9b5ff;background:#281d42}
+.recovery-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#ffe08a;color:#173035;font-size:24px;font-weight:1000;animation:recoverySpin 1.1s linear infinite}
+.connection-recovery[data-mode="offline"] .recovery-icon,.connection-recovery[data-mode="elsewhere"] .recovery-icon{animation:none}
+.recovery-copy{display:grid;gap:2px;min-width:0}.recovery-copy b{font-size:13px}.recovery-copy small{color:#d5ebe7;font-size:10px;line-height:1.35}
+.recovery-retry{min-height:36px;padding:6px 10px;border:1px solid rgba(255,255,255,.28);border-radius:10px;background:#fff;color:#153238;font-size:10px;font-weight:1000;cursor:pointer;touch-action:manipulation}
+@keyframes recoverySpin{to{transform:rotate(360deg)}}
+
+.utility-rules>.rule-summary{display:none!important}
+.active-rule-summary{display:grid;gap:12px}
+.active-rule-chips{display:flex;flex-wrap:wrap;gap:6px}
+.active-rule-chips span{padding:5px 8px;border-radius:999px;background:#143d40;color:#fff;font-size:10px;font-weight:1000}
+.active-rule-basics{padding:12px;border:1px solid #e4d6ad;border-radius:14px;background:#fff8df}
+.active-rule-basics b{color:#5c4317;font-size:12px}.active-rule-basics p{margin:5px 0 0;color:#3d372d;font-size:11px;line-height:1.55}
+.active-rule-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.active-rule-grid article{min-width:0;padding:10px;border:1px solid #ddd7c9;border-radius:13px;background:#fff;box-shadow:0 5px 14px rgba(39,45,42,.06)}
+.active-rule-grid article b{display:block;color:#183d40;font-size:10px}.active-rule-grid article p{margin:4px 0 0;color:#342f29;font-size:10px;line-height:1.45}
+
+body.gameplay-mode.modern-game-ui .hand-dock.fan-active{isolation:isolate}
+body.gameplay-mode.modern-game-ui .hand-dock.fan-active .hand-wrap{position:relative;display:block!important}
+body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handAlerts{display:none!important}
+body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote{
+  position:absolute!important;
+  z-index:120!important;
+  top:1px!important;
+  left:50%!important;
+  width:min(68%,620px)!important;
+  transform:translateX(-50%)!important;
+  pointer-events:none!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote .notice{max-width:100%!important;overflow:hidden!important;white-space:nowrap!important;text-overflow:ellipsis!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode){
+  position:relative!important;
+  display:block!important;
+  width:min(100%,980px)!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  padding:0!important;
+  overflow:visible!important;
+  touch-action:manipulation!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card,
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card:last-child{
+  position:absolute!important;
+  left:var(--fan-left)!important;
+  right:auto!important;
+  bottom:8px!important;
+  z-index:var(--fan-z)!important;
+  display:block!important;
+  flex:none!important;
+  width:var(--card-w)!important;
+  height:var(--card-h)!important;
+  margin:0!important;
+  transform:translateX(-50%) translateY(var(--fan-y)) rotate(var(--fan-angle))!important;
+  transform-origin:50% 116%!important;
+  transition:transform .2s cubic-bezier(.2,.8,.2,1),filter .18s ease!important;
+  scroll-snap-align:none!important;
+  will-change:transform;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card.fan-enter{
+  animation:fanDeal .38s cubic-bezier(.18,.85,.25,1.16) var(--fan-delay) backwards;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .hand-card .playing-card{
+  position:absolute!important;
+  inset:0!important;
+  width:var(--card-w)!important;
+  min-width:var(--card-w)!important;
+  height:var(--card-h)!important;
+  transform:none!important;
+  opacity:.9!important;
+  filter:saturate(.82) brightness(.91)!important;
+  box-shadow:0 7px 16px rgba(0,0,0,.34)!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .hand-card:not(:disabled) .playing-card{
+  opacity:1!important;
+  filter:none!important;
+  border-color:#ffe08a!important;
+  box-shadow:0 0 0 2px rgba(255,224,138,.22),0 10px 22px rgba(0,0,0,.38)!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card:hover,
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card:focus-visible{
+  z-index:90!important;
+  transform:translateX(-50%) translateY(calc(var(--fan-y) - 8px)) rotate(0deg)!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card.is-selected{
+  z-index:100!important;
+  animation:none!important;
+  transform:translateX(-50%) translateY(calc(var(--fan-y) - 20px)) rotate(0deg) scale(1.035)!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .hand-card.is-selected .playing-card{
+  border-color:#fff4b8!important;
+  box-shadow:0 0 0 3px #54d3b9,0 0 28px rgba(84,211,185,.75),0 15px 30px rgba(0,0,0,.44)!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .hand-card.is-selected:after{
+  content:'もう一度';
+  position:absolute;
+  z-index:4;
+  left:50%;bottom:5px;
+  transform:translateX(-50%);
+  padding:2px 5px;
+  border-radius:999px;
+  background:#0d504b;
+  color:#fff;
+  font-size:7px;
+  font-weight:1000;
+  white-space:nowrap;
+  box-shadow:0 3px 8px rgba(0,0,0,.25);
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card.is-committing{animation:fanCommit .42s ease-in-out infinite alternate!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner{
+  position:absolute!important;
+  z-index:5!important;
+  top:3px!important;
+  left:3px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  width:24px!important;
+  min-height:34px!important;
+  padding:1px 2px!important;
+  border:1px solid rgba(23,39,41,.14)!important;
+  border-radius:7px!important;
+  background:rgba(255,255,255,.96)!important;
+  box-shadow:0 2px 5px rgba(0,0,0,.12)!important;
+  line-height:1!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner .rank{font-size:15px!important;line-height:1!important;letter-spacing:-.06em!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner .suit-icon{font-size:13px!important;line-height:1!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card.joker .card-corner .rank{color:#321a50!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .madpig-banner{z-index:3!important;top:38px!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card.madpig:before{right:3px!important;top:2px!important;font-size:14px!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .danger-chip{z-index:3!important}
+@keyframes fanDeal{
+  from{opacity:0;transform:translateX(-50%) translateY(38px) rotate(0deg) scale(.86)}
+  to{opacity:1;transform:translateX(-50%) translateY(var(--fan-y)) rotate(var(--fan-angle)) scale(1)}
+}
+@keyframes fanCommit{
+  from{transform:translateX(-50%) translateY(calc(var(--fan-y) - 20px)) rotate(0deg) scale(1.035)}
+  to{transform:translateX(-50%) translateY(calc(var(--fan-y) - 24px)) rotate(0deg) scale(1.075)}
+}
+
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body p{overflow-wrap:anywhere}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer{max-width:min(330px,31vw)!important}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .speech-body p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
+
+@media(max-width:640px){
+  .connection-recovery{top:max(49px,calc(env(safe-area-inset-top) + 42px));grid-template-columns:32px minmax(0,1fr);min-height:52px;gap:8px;padding:7px 8px;border-radius:14px}
+  .recovery-icon{width:30px;height:30px;border-radius:10px;font-size:20px}
+  .recovery-copy b{font-size:11px}.recovery-copy small{font-size:8px}
+  .recovery-retry{grid-column:1/-1;min-height:30px;padding:4px 8px;font-size:9px}
+  .utility-sheet{width:100vw!important;padding-bottom:max(18px,env(safe-area-inset-bottom))}
+  .active-rule-grid{grid-template-columns:1fr}
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote{width:58%!important;left:57%!important}
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote .notice{padding:2px 6px!important}
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote .notice-title,
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote .notice-body{font-size:6.5px!important}
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card.is-selected{
+    transform:translateX(-50%) translateY(calc(var(--fan-y) - 16px)) rotate(0deg) scale(1.025)!important;
+  }
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner{width:22px!important;min-height:31px!important;padding-inline:1px!important}
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner .rank{font-size:14px!important}
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner .suit-icon{font-size:12px!important}
+}
+@media(max-width:360px){
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote{width:55%!important;left:59%!important}
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote .notice-body{display:none!important}
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote .notice-title:after{content:''!important}
+}
+@media(max-height:520px) and (orientation:landscape){
+  .connection-recovery{top:40px;width:min(520px,calc(100vw - 18px));grid-template-columns:30px minmax(0,1fr) auto;min-height:42px}
+  .connection-recovery .recovery-retry{grid-column:auto;min-height:28px}
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote{left:74%!important;width:46%!important;top:0!important}
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote .notice-body{display:none!important}
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card.is-selected{
+    transform:translateX(-50%) translateY(calc(var(--fan-y) - 12px)) rotate(0deg) scale(1.02)!important;
+  }
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner{width:20px!important;min-height:27px!important;top:2px!important;left:2px!important}
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner .rank{font-size:12px!important}
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .playing-card .card-corner .suit-icon{font-size:10px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .connection-recovery .recovery-icon,
+  body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand .hand-card{animation:none!important;transition:none!important}
+}
+
+/* =========================================================
+   Full debug & product polish v8
+   - one primary action, explicit connection state, predictable feedback
+   - minimum readable type and safe touch/focus treatment
+   ========================================================= */
+:root{
+  --focus-ring:#ffe08a;
+  --surface-0:#061b22;
+  --surface-1:#082a30;
+  --surface-2:#0d3d3d;
+  --text-strong:#ffffff;
+  --text-muted:#c5e1dc;
+  --accent-mint:#54d3b9;
+  --accent-gold:#ffe08a;
+  --danger-strong:#ff7890;
+}
+:where(button,input,select,summary,[tabindex]):focus-visible{
+  outline:3px solid var(--focus-ring)!important;
+  outline-offset:3px!important;
+}
+:where(button,.btn,.hud-button,.recovery-retry){-webkit-tap-highlight-color:transparent}
+:where(.btn,.hud-button,.recovery-retry,.utility-close):active{transform:translateY(1px);filter:brightness(.96)}
+
+body.gameplay-mode.modern-game-ui .game-screen{
+  background:
+    radial-gradient(circle at 50% 25%,rgba(57,190,159,.2),transparent 36%),
+    radial-gradient(circle at 10% 90%,rgba(255,116,142,.08),transparent 28%),
+    linear-gradient(145deg,#092e32,#061b22 66%,#07171d);
+}
+body.gameplay-mode.modern-game-ui .game-hud{
+  background:linear-gradient(180deg,rgba(4,24,30,.98),rgba(4,20,26,.92));
+  border-bottom-color:rgba(197,225,220,.14);
+}
+body.gameplay-mode.modern-game-ui .game-status .connection-status b:before{
+  content:'';display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:50%;
+  background:#f1c75b;box-shadow:0 0 0 3px rgba(241,199,91,.12);vertical-align:1px;
+}
+body.gameplay-mode.modern-game-ui .game-status .connection-status[data-conn="online"] b:before{background:#62ddb9;box-shadow:0 0 0 3px rgba(98,221,185,.13)}
+body.gameplay-mode.modern-game-ui .game-status .connection-status[data-conn="offline"] b:before{background:#ff7890;box-shadow:0 0 0 3px rgba(255,120,144,.13)}
+body.gameplay-mode.modern-game-ui .game-status .connection-status[data-conn="warning"] b:before{background:#ffb15f;box-shadow:0 0 0 3px rgba(255,177,95,.13)}
+
+body.gameplay-mode.modern-game-ui .game-round-status.round-status{
+  height:100%;min-height:0;padding:3px max(10px,env(safe-area-inset-left));gap:8px;
+  justify-content:flex-start;background:linear-gradient(90deg,rgba(12,67,64,.96),rgba(8,48,51,.94));
+  border-bottom:1px solid rgba(197,225,220,.12);overflow:hidden;
+}
+body.gameplay-mode.modern-game-ui .game-round-status .round-big{
+  flex:0 0 auto;display:grid;grid-template-columns:auto auto;align-items:baseline;gap:3px;
+  min-width:48px;margin:0;padding-right:8px;border-right:1px solid rgba(255,255,255,.13);line-height:1;
+}
+body.gameplay-mode.modern-game-ui .game-round-status .round-big small{font-size:6px;letter-spacing:.12em;color:#9ccac1}
+body.gameplay-mode.modern-game-ui .game-round-status .round-big b{font-size:13px;color:#fff;white-space:nowrap}
+.action-guide{flex:1 1 auto;min-width:0;display:grid;grid-template-columns:25px minmax(0,1fr);align-items:center;gap:7px;color:#fff}
+.action-guide-icon{display:grid;place-items:center;width:25px;height:25px;border:1px solid rgba(255,255,255,.16);border-radius:9px;background:rgba(255,255,255,.08);font-size:13px;font-weight:1000}
+.action-guide-copy{display:block;min-width:0;text-align:left;line-height:1.08}
+.action-guide-copy b,.action-guide-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.action-guide-copy b{font-size:11px;color:#fff}.action-guide-copy small{margin-top:2px;font-size:8px;color:#c5e1dc}
+.action-guide.tone-action .action-guide-icon{background:#ffe08a;color:#183337;border-color:#fff1bb;box-shadow:0 0 16px rgba(255,224,138,.2)}
+.action-guide.tone-result .action-guide-icon{background:#54d3b9;color:#082e2c;border-color:#8ee8d4}
+.action-guide.tone-danger .action-guide-icon,.action-guide.tone-warning .action-guide-icon{background:#ff7890;color:#3b101a;border-color:#ffb1bf}
+body.gameplay-mode.modern-game-ui .game-round-status .setting-chips{flex:0 1 46%;justify-content:flex-end;min-width:0;overflow:hidden}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .game-round-status .round-start{
+  left:auto!important;right:8px!important;top:50%!important;width:auto!important;max-width:min(34vw,360px)!important;
+  transform:translateY(-50%)!important;z-index:3!important;
+}
+
+body.gameplay-mode.modern-game-ui .hud-button{min-width:42px;min-height:36px;border-radius:12px}
+.hand-view-toggle{
+  min-height:28px;margin-left:4px;padding:3px 8px;border:1px solid rgba(255,255,255,.22);border-radius:999px;
+  background:rgba(255,255,255,.09);color:#eafff7;font:inherit;font-size:8px;font-weight:1000;letter-spacing:0;cursor:pointer;touch-action:manipulation;
+}
+.hand-view-toggle[hidden]{display:none!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.expanded-hand{
+  display:flex!important;justify-content:flex-start!important;align-items:flex-end!important;gap:8px!important;
+  overflow-x:auto!important;overflow-y:hidden!important;padding:30px 14px 4px!important;scroll-snap-type:x mandatory!important;
+  scroll-padding-inline:14px!important;overscroll-behavior-inline:contain!important;-webkit-overflow-scrolling:touch!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.expanded-hand .hand-card,
+body.gameplay-mode.modern-game-ui .hand-dock .hand.expanded-hand .hand-card:last-child{
+  position:relative!important;left:auto!important;bottom:auto!important;flex:0 0 var(--card-w)!important;width:var(--card-w)!important;height:var(--card-h)!important;
+  transform:none!important;scroll-snap-align:center!important;
+}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.expanded-hand .hand-card .playing-card{position:absolute!important;inset:0!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.expanded-hand .hand-card.is-selected{z-index:4!important;transform:translateY(-8px)!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.expanded-hand .hand-card.is-selected .playing-card{border-color:#fff4b8!important;box-shadow:0 0 0 3px #54d3b9,0 0 24px rgba(84,211,185,.62),0 12px 26px rgba(0,0,0,.4)!important}
+body.gameplay-mode.modern-game-ui .table-players .player{border-color:rgba(197,225,220,.25);background:linear-gradient(145deg,rgba(5,31,37,.96),rgba(8,49,50,.94))}
+body.gameplay-mode.modern-game-ui #message.table-message.message{border-color:rgba(255,255,255,.28);border-left-color:#ffe08a;background:#071f25;color:#fff}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-bubble{border-color:rgba(255,255,255,.28);background:#08272d}
+
+/* The action rail carries the instruction on phones; keep the fan itself unobstructed. */
+@media(max-width:640px){
+  body.gameplay-mode.modern-game-ui.ui-phone .game-round-status .round-start{display:none!important}
+  body.gameplay-mode.modern-game-ui .game-round-status .setting-chips{display:none!important}
+  body.gameplay-mode.modern-game-ui .game-round-status .round-big{min-width:43px;padding-right:6px}
+  body.gameplay-mode.modern-game-ui .game-round-status .round-big small{font-size:5.5px}
+  body.gameplay-mode.modern-game-ui .game-round-status .round-big b{font-size:11px}
+  .action-guide{grid-template-columns:23px minmax(0,1fr);gap:6px}.action-guide-icon{width:23px;height:23px;border-radius:8px;font-size:12px}
+  .action-guide-copy b{font-size:10px}.action-guide-copy small{font-size:7.5px}
+  body.gameplay-mode.modern-game-ui .hand-dock.fan-active #handNote,
+  body.gameplay-mode.modern-game-ui .hand-dock.expanded-active #handNote{display:none!important}
+  .hand-view-toggle{min-height:28px;padding:2px 7px;font-size:7.5px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .name{font-size:9.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player-stats span{font-size:7.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-slot-label{font-size:7.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body b{font-size:8px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body p{font-size:9.5px!important;line-height:1.18!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #message.table-message.message{font-size:10.5px!important}
+  .connection-recovery{max-height:calc(100dvh - 58px);overflow:auto}
+  .recovery-retry{min-height:36px}
+}
+@media (max-width:720px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen{grid-template-rows:46px 38px minmax(0,1fr) 156px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-round-status.round-status{height:38px!important;padding:3px 7px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hud-button{min-height:36px!important}
+}
+@media (max-width:360px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen{grid-template-rows:44px 36px minmax(0,1fr) 150px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-round-status.round-status{height:36px!important}
+  .action-guide-copy small{display:none}
+}
+@media(max-height:520px) and (orientation:landscape){
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-screen{grid-template-rows:38px 30px minmax(0,1fr) 108px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-round-status.round-status{height:30px!important;padding-block:2px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-round-status .round-big small,.action-guide-copy small{display:none}
+  .action-guide{grid-template-columns:21px minmax(0,1fr)}.action-guide-icon{width:21px;height:21px;font-size:11px}.action-guide-copy b{font-size:9px}
+}
+
+.round-panel .round-actions{position:sticky;bottom:-16px;z-index:4;margin:14px -16px -16px;padding:12px 16px max(12px,env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(255,248,232,.3),#fff8e8 28%);border-top:1px solid #ead9bb}
+.round-panel .round-actions .btn{min-height:44px}
+.round-auto-note{padding-bottom:8px;color:#604f40!important}
+.utility-sheet{padding-bottom:max(24px,env(safe-area-inset-bottom))}
+.utility-close{min-width:40px;min-height:40px}
+
+@media(prefers-reduced-motion:reduce){
+  *{scroll-behavior:auto!important}
+  .action-guide-icon,.game-status .connection-status b:before{animation:none!important}
+}
+
+/* =========================================================
+   Cinematic motion & event clarity v9
+   - animations never receive pointer input
+   - event IDs prevent repeated playback after state rebroadcast
+   ========================================================= */
+.trick-card-motion{position:relative;display:grid;place-items:center;transform-origin:50% 72%;will-change:transform,opacity,filter}
+.trick-card-motion.is-new.motion-bottom{animation:trickCardInBottom .52s cubic-bezier(.16,.86,.24,1.14) both}
+.trick-card-motion.is-new.motion-top{animation:trickCardInTop .52s cubic-bezier(.16,.86,.24,1.14) both}
+.trick-card-motion.is-new.motion-left{animation:trickCardInLeft .52s cubic-bezier(.16,.86,.24,1.14) both}
+.trick-card-motion.is-new.motion-right{animation:trickCardInRight .52s cubic-bezier(.16,.86,.24,1.14) both}
+.trick-card-motion.is-new:after{content:'';position:absolute;inset:42% 16%;z-index:-1;border-radius:50%;background:rgba(84,211,185,.45);filter:blur(11px);animation:trickLandingGlow .64s ease-out both}
+.trick-board.reviewing .trick-card-motion:not(.is-new){animation:trickReviewSettle .52s cubic-bezier(.2,.8,.2,1) both}
+.pick-card.is-picking{z-index:8;pointer-events:none}
+.pick-card.is-picking .playing-card{animation:pickCardCommit .46s cubic-bezier(.2,.9,.2,1.2) both,pickCardAwait .72s .46s ease-in-out infinite alternate!important;border-color:#ffe08a!important;box-shadow:0 0 0 4px rgba(255,224,138,.28),0 18px 38px rgba(0,0,0,.42)!important}
+.pair-card-btn.is-cleansing{pointer-events:none;z-index:8}
+.pair-card-btn.is-cleansing .playing-card{animation:pairChoiceCommit .5s cubic-bezier(.18,.88,.24,1.18) both!important;box-shadow:0 0 0 4px rgba(84,211,185,.3),0 0 30px rgba(84,211,185,.65)!important}
+body.gameplay-mode.modern-game-ui .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card.is-committing{animation:handCardLaunch .54s cubic-bezier(.18,.85,.25,1.12) infinite alternate!important}
+.pick-result .playing-card{animation:pickResultReveal .58s cubic-bezier(.16,.9,.25,1.2) both!important;transform-origin:50% 70%}
+
+@keyframes trickCardInBottom{0%{opacity:0;transform:translateY(76px) scale(.76) rotate(8deg);filter:blur(3px)}70%{opacity:1;transform:translateY(-5px) scale(1.04) rotate(-2deg);filter:none}100%{transform:none;filter:none}}
+@keyframes trickCardInTop{0%{opacity:0;transform:translateY(-76px) scale(.76) rotate(-8deg);filter:blur(3px)}70%{opacity:1;transform:translateY(5px) scale(1.04) rotate(2deg);filter:none}100%{transform:none;filter:none}}
+@keyframes trickCardInLeft{0%{opacity:0;transform:translateX(-84px) scale(.76) rotate(-10deg);filter:blur(3px)}70%{opacity:1;transform:translateX(5px) scale(1.04) rotate(2deg);filter:none}100%{transform:none;filter:none}}
+@keyframes trickCardInRight{0%{opacity:0;transform:translateX(84px) scale(.76) rotate(10deg);filter:blur(3px)}70%{opacity:1;transform:translateX(-5px) scale(1.04) rotate(-2deg);filter:none}100%{transform:none;filter:none}}
+@keyframes trickLandingGlow{0%{opacity:0;transform:scale(.2)}45%{opacity:1}100%{opacity:0;transform:scale(1.7)}}
+@keyframes trickReviewSettle{0%{transform:scale(1)}48%{transform:scale(1.065) translateY(-3px);filter:brightness(1.18)}100%{transform:scale(1);filter:none}}
+@keyframes pickCardCommit{0%{transform:translateY(0) rotate(0) scale(1)}65%{transform:translateY(-22px) rotate(-3deg) scale(1.08)}100%{transform:translateY(-15px) rotate(0) scale(1.04)}}
+@keyframes pickCardAwait{to{filter:brightness(1.18);transform:translateY(-18px) scale(1.055)}}
+@keyframes pairChoiceCommit{0%{transform:none}62%{transform:translateY(-18px) scale(1.08) rotate(3deg)}100%{transform:translateY(-12px) scale(1.04)}}
+@keyframes handCardLaunch{from{transform:translateX(-50%) translateY(calc(var(--fan-y) - 20px)) rotate(0) scale(1.035)}to{transform:translateX(-50%) translateY(calc(var(--fan-y) - 31px)) rotate(0) scale(1.085);filter:brightness(1.15)}}
+@keyframes pickResultReveal{0%{opacity:0;transform:rotateY(84deg) translateY(18px) scale(.78)}72%{opacity:1;transform:rotateY(-8deg) translateY(-4px) scale(1.08)}100%{transform:rotateY(0) translateY(0) scale(1)}}
+
+.moment-overlay{position:fixed;inset:0;z-index:9998;display:grid;place-items:center;padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));pointer-events:none;overflow:hidden;isolation:isolate}
+.moment-overlay:empty{display:none}
+.moment-scrim{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(9,49,50,.22),rgba(2,13,19,.72));animation:momentScrimIn .28s ease-out both}
+.moment-card{position:relative;width:min(92vw,560px);max-height:calc(100dvh - 20px);overflow:hidden;padding:22px 20px 20px;border:4px solid rgba(255,255,255,.55);border-radius:28px;text-align:center;color:#fff;box-shadow:0 28px 90px rgba(0,0,0,.52),0 0 0 8px rgba(255,255,255,.1);isolation:isolate;animation:momentPanelIn .58s cubic-bezier(.16,1.14,.25,1) both}
+.moment-pair{background:radial-gradient(circle at 50% 24%,rgba(164,255,224,.38),transparent 34%),linear-gradient(150deg,#0b665c,#073c45 58%,#17233d)}
+.moment-mad{background:radial-gradient(circle at 50% 30%,rgba(225,237,239,.24),transparent 30%),linear-gradient(150deg,#556066,#2c343d 55%,#3b1223)}
+.moment-kicker{display:inline-flex;align-items:center;min-height:24px;padding:4px 10px;border:1px solid rgba(255,255,255,.34);border-radius:999px;background:rgba(0,0,0,.22);font-size:10px;font-weight:1000;letter-spacing:.16em}
+.moment-title{margin:7px 0 0;font-size:clamp(26px,6vw,46px);font-weight:1000;line-height:1.05;text-shadow:0 4px 0 rgba(0,0,0,.2)}
+.moment-owner{margin-top:6px;color:#fff2ad;font-size:clamp(17px,4vw,27px);font-weight:1000}
+.moment-copy{margin:9px auto 0;max-width:430px;color:#eafff8;font-size:13px;font-weight:900;line-height:1.45}
+.pair-motion-stage{position:relative;display:flex;align-items:center;justify-content:center;gap:18px;height:132px;margin:8px auto 0;perspective:600px}
+.pair-motion-card{position:relative;z-index:2;display:grid;place-items:center;will-change:transform,opacity}
+.pair-motion-card.left{animation:pairCardFromLeft .78s cubic-bezier(.18,.9,.25,1.12) both}
+.pair-motion-card.right{animation:pairCardFromRight .78s cubic-bezier(.18,.9,.25,1.12) both}
+.pair-motion-card .playing-card{box-shadow:0 14px 34px rgba(0,0,0,.34)!important}
+.pair-symbol-card{display:grid;place-items:center;width:72px;height:110px;border:2px solid #315e62;border-radius:10px;background:linear-gradient(180deg,#fff,#e8fffa);color:#123f43;box-shadow:0 14px 34px rgba(0,0,0,.34);font-weight:1000}
+.pair-symbol-card b{font-size:28px}.pair-symbol-card span{font-size:24px}
+.pair-clean-core{position:absolute;left:50%;top:50%;z-index:4;width:66px;height:66px;border:3px solid rgba(255,255,255,.78);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 30px rgba(118,255,212,.92),inset 0 0 18px rgba(255,255,255,.65);animation:pairCleanseMerge .96s .28s cubic-bezier(.18,.9,.22,1.12) both}
+.pair-clean-core:before,.pair-clean-core:after{content:'✨';position:absolute;font-size:25px;animation:pairSparkOrbit 1.2s linear infinite}
+.pair-clean-core:before{left:-20px;top:8px}.pair-clean-core:after{right:-20px;bottom:8px;animation-direction:reverse}
+.pair-clean-stamp{position:absolute;left:50%;bottom:0;z-index:6;transform:translateX(-50%) rotate(-4deg);padding:5px 13px;border:3px solid #fff4ae;border-radius:9px;background:#0b4e49;color:#fff4ae;font-size:13px;font-weight:1000;letter-spacing:.08em;animation:pairStampIn .5s 1s cubic-bezier(.2,1.3,.3,1) backwards}
+.moment-particles{position:absolute;inset:0;z-index:-1}.moment-particles i{position:absolute;left:var(--x);top:var(--y);font-style:normal;font-size:var(--s);animation:momentParticleBurst 1.4s var(--d) ease-out infinite alternate}
+.mad-motion-stage{position:relative;display:grid;place-items:center;height:150px;margin-top:6px}
+.mad-card-rise{position:relative;z-index:3;animation:madPigRise .82s cubic-bezier(.16,.9,.22,1.16) both}
+.mad-card-rise .playing-card{box-shadow:0 0 0 4px rgba(255,120,144,.35),0 20px 45px rgba(0,0,0,.48),0 0 34px rgba(255,120,144,.42)!important}
+.mad-ripple{position:absolute;left:50%;bottom:10px;width:190px;height:46px;border:3px solid rgba(212,231,233,.62);border-radius:50%;transform:translateX(-50%);box-shadow:0 0 24px rgba(211,232,234,.34),inset 0 0 20px rgba(255,255,255,.2);animation:madRipple 1.2s ease-out infinite}
+.mad-ripple:after{content:'';position:absolute;inset:8px 20px;border:2px solid rgba(255,255,255,.36);border-radius:50%;animation:madRipple 1.2s .3s ease-out infinite}
+.mad-warning-line{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:7px}.mad-warning-line span{padding:5px 9px;border:2px solid rgba(255,255,255,.66);border-radius:999px;background:rgba(20,22,29,.62);font-size:11px;font-weight:1000}.mad-warning-line .penalty{background:#8d2038;color:#fff4b7;border-color:#ffb1bf;animation:madPenaltyPulse .65s ease-in-out infinite alternate}
+.moment-overlay.fade-out .moment-card{animation:momentPanelOut .5s ease-in both}.moment-overlay.fade-out .moment-scrim{animation:momentScrimOut .5s ease-in both}
+body.pair-impact-active .game-arena{animation:pairArenaGlow .7s ease-out both}
+body.mad-impact-active .game-arena{animation:madArenaPulse .46s ease-in-out 2}
+
+@keyframes momentScrimIn{from{opacity:0}to{opacity:1}}@keyframes momentScrimOut{to{opacity:0}}
+@keyframes momentPanelIn{0%{opacity:0;transform:translateY(22px) scale(.72) rotate(-3deg)}72%{opacity:1;transform:translateY(-4px) scale(1.035) rotate(1deg)}100%{transform:none}}
+@keyframes momentPanelOut{to{opacity:0;transform:translateY(16px) scale(.88);filter:blur(2px)}}
+@keyframes pairCardFromLeft{0%{opacity:0;transform:translateX(-150px) rotate(-22deg) scale(.7)}72%{opacity:1;transform:translateX(12px) rotate(4deg) scale(1.05)}100%{transform:translateX(7px) rotate(-2deg)}}
+@keyframes pairCardFromRight{0%{opacity:0;transform:translateX(150px) rotate(22deg) scale(.7)}72%{opacity:1;transform:translateX(-12px) rotate(-4deg) scale(1.05)}100%{transform:translateX(-7px) rotate(2deg)}}
+@keyframes pairCleanseMerge{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(-120deg)}55%{opacity:1;transform:translate(-50%,-50%) scale(1.24) rotate(18deg)}100%{transform:translate(-50%,-50%) scale(1) rotate(0)}}
+@keyframes pairSparkOrbit{to{transform:rotate(360deg) translateX(8px) rotate(-360deg)}}
+@keyframes pairStampIn{0%{opacity:0;transform:translateX(-50%) scale(2) rotate(-12deg)}100%{opacity:1;transform:translateX(-50%) scale(1) rotate(-4deg)}}
+@keyframes momentParticleBurst{from{opacity:.25;transform:translateY(12px) scale(.7) rotate(-12deg)}to{opacity:1;transform:translateY(-16px) scale(1.15) rotate(14deg)}}
+@keyframes madPigRise{0%{opacity:0;transform:translateY(90px) scale(.62) rotate(13deg);filter:blur(4px)}66%{opacity:1;transform:translateY(-9px) scale(1.09) rotate(-5deg);filter:none}100%{transform:translateY(0) scale(1) rotate(-2deg)}}
+@keyframes madRipple{0%{opacity:.8;transform:translateX(-50%) scale(.55)}100%{opacity:0;transform:translateX(-50%) scale(1.35)}}
+@keyframes madPenaltyPulse{to{box-shadow:0 0 0 5px rgba(255,120,144,.18),0 0 22px rgba(255,120,144,.5);transform:scale(1.04)}}
+@keyframes pairArenaGlow{0%{filter:none}45%{filter:brightness(1.14) saturate(1.18)}100%{filter:none}}
+@keyframes madArenaPulse{0%,100%{filter:none}50%{filter:brightness(.78) saturate(1.35)}}
+
+/* Existing Baba/Shoot overlays receive staged motion without changing scoring. */
+.baba-draw-track{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;width:min(82%,360px);height:34px;margin:7px auto 1px}
+.baba-track-line{position:absolute;left:13%;right:13%;top:50%;height:3px;border-radius:999px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.8) 0 10px,transparent 10px 17px);opacity:.72}
+.baba-track-bag,.baba-track-shock{position:relative;z-index:2;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.9);font-size:18px}
+.baba-track-shock{margin-left:auto;background:#5f122b;color:#fff4a8;font-weight:1000;animation:babaShockPulse .48s .82s ease-in-out infinite alternate}
+.baba-track-card{position:absolute;left:15%;top:3px;z-index:3;width:21px;height:29px;border:2px solid #fff;border-radius:5px;background:linear-gradient(135deg,#f6a3a3,#d94d5f);box-shadow:0 5px 12px rgba(0,0,0,.3);animation:babaCardTravel .92s cubic-bezier(.2,.85,.22,1) both}
+.reveal-joker-card{animation:babaCardReveal .84s .42s cubic-bezier(.16,.9,.22,1.14) both,babaCardHover .72s 1.28s ease-in-out infinite alternate!important}
+.baba-title{animation:babaDangerStamp .48s .68s cubic-bezier(.2,1.25,.3,1) backwards}
+.baba-warning{animation:cinematicInfoRise .45s 1.05s ease-out backwards}
+.shoot-combo-line .combo-piece:first-child{animation:shootComboLeft .68s .42s cubic-bezier(.18,.9,.24,1.12) backwards}
+.shoot-combo-line .combo-piece:last-child{animation:shootComboRight .68s .42s cubic-bezier(.18,.9,.24,1.12) backwards}
+.shoot-combo-line>b{font-size:23px;animation:shootComboBurst .48s .92s cubic-bezier(.2,1.3,.3,1) backwards}
+.shoot-trajectory{position:relative;width:min(86%,430px);height:62px;margin:3px auto 0}
+.shoot-trajectory-line{position:absolute;left:9%;right:12%;top:31px;height:3px;border-radius:999px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.85),#fff1a2);transform:rotate(-7deg);transform-origin:left center}
+.shoot-projectile{position:absolute;left:7%;top:22px;z-index:3;font-size:24px;filter:drop-shadow(0 0 8px #fff4a8);animation:shootProjectile 1.05s .78s cubic-bezier(.18,.78,.2,1) both}
+.shoot-moon{position:absolute;right:5%;top:5px;font-size:44px;filter:drop-shadow(0 0 16px #fff0a1);animation:shootMoonImpact .7s 1.65s cubic-bezier(.2,1.3,.3,1) backwards}
+.shoot-impact-ring{position:absolute;right:3%;top:4px;width:52px;height:52px;border:4px solid rgba(255,255,255,.8);border-radius:50%;animation:shootImpactRing .8s 1.72s ease-out backwards}
+.shoot-effect-v2{animation:cinematicInfoRise .5s 1.72s ease-out backwards}
+
+@keyframes babaCardTravel{0%{opacity:0;transform:translateX(0) rotate(-15deg) scale(.7)}18%{opacity:1}75%{transform:translateX(235px) rotate(14deg) scale(1.08)}100%{opacity:0;transform:translateX(255px) rotateY(80deg) scale(.72)}}
+@keyframes babaShockPulse{to{transform:scale(1.16);box-shadow:0 0 18px rgba(255,244,168,.62)}}
+@keyframes babaCardReveal{0%{opacity:0;transform:rotateY(90deg) scale(.55) translateY(20px)}70%{opacity:1;transform:rotateY(-8deg) scale(1.24) rotate(-5deg)}100%{transform:rotateY(0) scale(1.16) rotate(-4deg)}}
+@keyframes babaCardHover{to{transform:scale(1.22) rotate(4deg) translateY(-5px)}}
+@keyframes babaDangerStamp{0%{opacity:0;transform:scale(1.9) rotate(-7deg)}100%{opacity:1;transform:none}}
+@keyframes cinematicInfoRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes shootComboLeft{from{opacity:0;transform:translateX(-130px) rotate(-12deg)}to{opacity:1;transform:none}}
+@keyframes shootComboRight{from{opacity:0;transform:translateX(130px) rotate(12deg)}to{opacity:1;transform:none}}
+@keyframes shootComboBurst{0%{opacity:0;transform:scale(.2) rotate(-40deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes shootProjectile{0%{opacity:0;transform:translate(0,18px) rotate(-18deg) scale(.65)}14%{opacity:1}78%{opacity:1;transform:translate(310px,-12px) rotate(18deg) scale(1.1)}100%{opacity:0;transform:translate(335px,-15px) rotate(28deg) scale(.35)}}
+@keyframes shootMoonImpact{0%{opacity:0;transform:scale(.35) rotate(-20deg)}65%{opacity:1;transform:scale(1.35) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes shootImpactRing{0%{opacity:1;transform:scale(.2)}100%{opacity:0;transform:scale(2.3)}}
+
+@media(max-width:640px){
+  .moment-card{width:calc(100vw - 18px);padding:16px 11px 14px;border-width:3px;border-radius:22px}
+  .moment-title{font-size:clamp(23px,8vw,34px)}.moment-owner{font-size:18px}.moment-copy{font-size:11px;margin-top:6px}
+  .pair-motion-stage{height:112px;gap:10px}.pair-motion-card .playing-card,.pair-symbol-card{width:58px!important;min-width:58px!important;height:88px!important}.pair-symbol-card b{font-size:23px}.pair-symbol-card span{font-size:20px}
+  .pair-clean-core{width:54px;height:54px}.pair-clean-stamp{font-size:10px;padding:4px 9px}
+  .mad-motion-stage{height:128px}.mad-card-rise .playing-card{width:62px!important;min-width:62px!important;height:94px!important}.mad-ripple{width:150px}
+  .shoot-overlay-card-v2,.baba-overlay-card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px)}
+  .baba-draw-track{width:min(92%,330px)}
+}
+@media(max-width:360px) and (orientation:portrait){
+  .moment-card{padding:13px 9px 12px}.moment-kicker{font-size:8px}.pair-motion-stage{height:103px;margin-top:3px}.mad-motion-stage{height:116px}
+  .mad-warning-line span{font-size:9px;padding:4px 7px}.moment-particles i{font-size:14px!important}
+  .baba-overlay-card,.shoot-overlay-card-v2{padding:14px 9px 12px}.baba-copy,.shoot-hype-copy{font-size:11px}.baba-warning{margin-top:8px}
+}
+@media(max-height:520px) and (orientation:landscape){
+  .moment-overlay,.shoot-pig-overlay,.baba-draw-overlay{padding:5px max(7px,env(safe-area-inset-right)) 5px max(7px,env(safe-area-inset-left))}
+  .moment-card{width:min(76vw,620px);max-height:calc(100dvh - 10px);padding:8px 13px;border-width:3px;border-radius:18px}.moment-kicker{min-height:18px;padding:2px 7px;font-size:7px}.moment-title{margin-top:2px;font-size:21px}.moment-owner{margin-top:2px;font-size:14px}.moment-copy{margin-top:2px;font-size:9px;line-height:1.2}
+  .pair-motion-stage{height:78px;margin:1px auto;gap:8px}.pair-motion-card .playing-card,.pair-symbol-card{width:44px!important;min-width:44px!important;height:66px!important;border-radius:7px!important}.pair-symbol-card b{font-size:18px}.pair-symbol-card span{font-size:15px}.pair-clean-core{width:42px;height:42px}.pair-clean-core:before,.pair-clean-core:after{font-size:16px}.pair-clean-stamp{bottom:-1px;font-size:8px;padding:2px 7px;border-width:2px}
+  .mad-motion-stage{height:82px;margin:0}.mad-card-rise .playing-card{width:44px!important;min-width:44px!important;height:66px!important}.mad-ripple{bottom:3px;width:120px;height:26px}.mad-warning-line{margin-top:1px}.mad-warning-line span{padding:2px 6px;font-size:8px;border-width:1px}
+  .shoot-overlay-card-v2,.baba-overlay-card{width:min(84vw,690px);max-height:calc(100dvh - 10px);padding:7px 12px;border-width:3px;border-radius:18px}.shoot-burst,.baba-burst{font-size:27px;line-height:1}.shoot-kicker,.baba-kicker{margin:1px;padding:2px 7px;font-size:7px}.shoot-title,.baba-title{margin-top:1px;font-size:24px;line-height:1}.shoot-title-jp{margin-top:2px;padding:3px 8px;font-size:9px}.shoot-name,.baba-name{margin-top:3px;font-size:17px}.shoot-combo-line{gap:4px;margin-top:3px}.combo-piece{padding:3px 6px;font-size:8px;border-width:1px}.shoot-combo-line>b{font-size:14px}.shoot-trajectory{height:31px;margin:0 auto}.shoot-trajectory-line{top:16px}.shoot-projectile{top:8px;font-size:16px}.shoot-moon{top:0;font-size:26px}.shoot-impact-ring{top:0;width:30px;height:30px;border-width:2px}.shoot-effect{gap:3px;margin-top:2px}.shoot-effect span{padding:3px 6px!important;font-size:8px!important;border-width:1px}.shoot-hype-copy,.baba-copy{margin-top:2px;font-size:9px}.shoot-limit-copy{display:none}.baba-draw-track{height:22px;margin:1px auto}.baba-track-bag,.baba-track-shock{width:21px;height:21px;font-size:12px}.baba-track-card{top:0;width:15px;height:21px}.baba-route{margin-top:2px;padding:2px 7px;font-size:8px}.baba-card-pop{margin-top:2px}.baba-card-pop .playing-card{width:44px!important;min-width:44px!important;height:66px!important}.baba-warning{gap:3px;margin-top:3px}.baba-warning span,.baba-warning b{padding:2px 6px;font-size:8px;border-width:1px}.baba-confetti,.shoot-confetti,.moment-particles{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  .trick-card-motion,.trick-card-motion:after,.pick-card .playing-card,.pair-card-btn .playing-card,.hand-card,.pick-result .playing-card,
+  .moment-overlay *,.shoot-pig-overlay *,.baba-draw-overlay *,body.pair-impact-active .game-arena,body.mad-impact-active .game-arena,
+  body.baba-impact-active #app,body.shoot-impact-active #app{animation:none!important;transition:none!important}
+  .moment-particles,.shoot-confetti,.baba-confetti,.shoot-impact-ring{display:none!important}
+}
+
 </style>
 </head>
 <body class="modern-game-ui">
 <div id="app">
-  <header class="hero"><div class="hero-brand"><img class="game-logo" src="/pig_pick_trick_logo.png" alt="PIG PICK TRICK ロゴ"><div class="hero-meta"><div class="hero-subtitle">【ピピトリ】ピッグ・ピック・トリック</div><p>作成日時：2026-06-28 18:40 JST</p></div></div></header>
+  <header class="hero"><div class="hero-brand"><img class="game-logo" src="/pig_pick_trick_logo.png" alt="PIG PICK TRICK ロゴ"><div class="hero-meta"><div class="hero-subtitle">【ピピトリ】ピッグ・ピック・トリック</div><p>4人専用 · トリックテイキング × ババ抜き</p></div></div></header>
 
   <section id="lobby" class="cardbox">
     <h2>オンライン部屋</h2>
@@ -4172,10 +5320,10 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
     <section class="rule-preset-panel" aria-labelledby="rulePresetTitle">
       <div class="preset-panel-head"><div><span class="menu-eyebrow">STEP 2 · HOST RULES</span><h3 id="rulePresetTitle">遊び方を選ぶ</h3><p>迷ったら「スタンダード」。選んだ後に細かく調整できます。</p></div><span class="recommended-pill">おすすめから選択</span></div>
       <div class="rule-presets" role="group" aria-label="ルールプリセット">
-        <button type="button" class="rule-preset is-selected" data-rule-preset="standard" aria-pressed="true"><span class="preset-check">✓</span><span class="preset-icon">✨</span><span class="preset-copy"><b>スタンダード</b><small>初プレイ・迷った時に</small></span><span class="preset-meta">3R · 泥-6 · シュート各自1回</span></button>
+        <button type="button" class="rule-preset is-selected" data-rule-preset="standard" aria-pressed="true"><span class="preset-check">✓</span><span class="preset-icon">✨</span><span class="preset-copy"><b>スタンダード</b><small>初プレイ・迷った時に</small></span><span class="preset-meta">3R · 💧-6 · シュート各自1回</span></button>
         <button type="button" class="rule-preset" data-rule-preset="quick" aria-pressed="false"><span class="preset-check">✓</span><span class="preset-icon">⚡</span><span class="preset-copy"><b>クイック</b><small>短時間で1勝負</small></span><span class="preset-meta">1R · 標準失点 · 約15分</span></button>
         <button type="button" class="rule-preset" data-rule-preset="dramatic" aria-pressed="false"><span class="preset-check">✓</span><span class="preset-icon">🎭</span><span class="preset-copy"><b>ドラマチック</b><small>事故と逆転を楽しむ</small></span><span class="preset-meta">ババ-30 · ピック6</span></button>
-        <button type="button" class="rule-preset" data-rule-preset="strategic" aria-pressed="false"><span class="preset-check">✓</span><span class="preset-icon">🧠</span><span class="preset-copy"><b>ストラテジー</b><small>手札管理と読み合い</small></span><span class="preset-meta">5R · 泥管理 · 3枚パス</span></button>
+        <button type="button" class="rule-preset" data-rule-preset="strategic" aria-pressed="false"><span class="preset-check">✓</span><span class="preset-icon">🧠</span><span class="preset-copy"><b>ストラテジー</b><small>手札管理と読み合い</small></span><span class="preset-meta">5R · 💧管理 · 3枚パス</span></button>
       </div>
       <div id="selectedPresetSummary" class="selected-preset-summary" aria-live="polite"><span>現在の設定</span><b>スタンダード</b><small>運と戦略のバランスが良い標準ルールです。</small></div>
     </section>
@@ -4184,13 +5332,13 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
       <summary class="advanced-settings-summary">⚙️ 詳細ルールをカスタマイズ <span class="small">プリセットから一項目ずつ変更できます</span></summary>
       <div class="advanced-settings-hint">変更内容に合わせて、すぐ下の「試合傾向」がリアルタイムに更新されます。</div>
       <div class="rules-default-note">
-        <b>標準設定</b>：3ラウンド / 🍎リンゴ・🌽トウモロコシ・🥬キャベツは-3点・通常の泥は-6点 / マッド固有-13点 / ババブタ-20点・ラウンド毎 / ピック対象2枚 / 3枚パスなし / 開始時ペア捨てなし / シュートON（両方とも手札・各自1回）
+        <b>標準設定</b>：3ラウンド / 🍎リンゴ・🌽トウモロコシ・🥬キャベツは-3点・通常の💧は-6点 / マッド固有-13点 / ババブタ-20点・ラウンド毎 / ピック対象2枚 / 3枚パスなし / 開始時ペア捨てなし / シュートON（両方とも手札・各自1回）
       </div>
       <div class="suit-flavor-map" aria-label="ピピトリの4スート">
         <span class="suit-flavor apple"><i aria-hidden="true">🍎</i><b>リンゴ</b><small>赤色スート</small></span>
         <span class="suit-flavor corn"><i aria-hidden="true">🌽</i><b>トウモロコシ</b><small>黄色スート</small></span>
         <span class="suit-flavor cabbage"><i aria-hidden="true">🥬</i><b>キャベツ</b><small>緑色スート</small></span>
-        <span class="suit-flavor mud"><i aria-hidden="true">泥</i><b>泥</b><small>灰色・高失点スート</small></span>
+        <span class="suit-flavor mud"><i aria-hidden="true">💧</i><b>ぬかるみ</b><small>灰色・高失点スート</small></span>
       </div>
       <div id="matchTrendPanel" class="match-trend-panel" aria-live="polite"></div>
       <div class="settings-sections">
@@ -4202,7 +5350,7 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
           <p>ゲームの長さと、残った手札の失点方法を決めます。</p>
           <div class="settings-grid compact-grid">
             <label class="input-label"><span class="rule-title"><span>ラウンド数</span><button type="button" class="rule-help-btn" data-help-rule="rounds" aria-label="ラウンド数のヘルプ">?</button></span><select id="rounds" class="input"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select><em>標準は3ラウンド</em></label>
-            <label class="input-label option-toggle"><span class="rule-title"><span>残り手札の失点</span><button type="button" class="rule-help-btn" data-help-rule="penaltyMode" aria-label="残り手札の失点のヘルプ">?</button></span><select id="penaltyMode" class="input"><option value="mud6" selected>リンゴ・トウモロコシ・キャベツは-3点、通常の泥は-6点</option><option value="flat3">全スート1枚ごとに-3点</option><option value="faceValue">数字分だけ失点</option><option value="mudSuit">1枚ごとに-1点、泥スートは-3点</option></select><em>標準は泥-6点・他-3点</em></label>
+            <label class="input-label option-toggle"><span class="rule-title"><span>残り手札の失点</span><button type="button" class="rule-help-btn" data-help-rule="penaltyMode" aria-label="残り手札の失点のヘルプ">?</button></span><select id="penaltyMode" class="input"><option value="mud6" selected>リンゴ・トウモロコシ・キャベツは-3点、通常の💧は-6点</option><option value="flat3">全スート1枚ごとに-3点</option><option value="faceValue">数字分だけ失点</option><option value="mudSuit">1枚ごとに-1点、💧スートは-3点</option></select><em>標準は💧-6点・他-3点</em></label>
           </div>
         </section>
 
@@ -4213,7 +5361,7 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
           </div>
           <p>ババブタ、マッド・ピッグ、シュート・ザ・ピッグの扱いを決めます。</p>
           <div class="settings-grid compact-grid">
-            <label class="input-label option-toggle"><span class="rule-title"><span>マッド・ピッグ</span><button type="button" class="rule-help-btn" data-help-rule="madPigEnabled" aria-label="マッド・ピッグのヘルプ">?</button></span><select id="madPigEnabled" class="input"><option value="true" selected>あり</option><option value="false">なし</option></select><em>泥11は固有-13点（通常失点と重複なし）</em></label>
+            <label class="input-label option-toggle"><span class="rule-title"><span>マッド・ピッグ</span><button type="button" class="rule-help-btn" data-help-rule="madPigEnabled" aria-label="マッド・ピッグのヘルプ">?</button></span><select id="madPigEnabled" class="input"><option value="true" selected>あり</option><option value="false">なし</option></select><em>💧11は固有-13点（通常失点と重複なし）</em></label>
             <label class="input-label"><span class="rule-title"><span>ババブタ失点</span><button type="button" class="rule-help-btn" data-help-rule="jokerPenalty" aria-label="ババブタ失点のヘルプ">?</button></span><input id="jokerPenalty" class="input" type="number" value="-20" min="-999" max="0" step="1" /><em>標準は-20点</em></label>
             <label class="input-label option-toggle"><span class="rule-title"><span>ババブタ失点タイミング</span><button type="button" class="rule-help-btn" data-help-rule="jokerPenaltyTiming" aria-label="ババブタ失点タイミングのヘルプ">?</button></span><select id="jokerPenaltyTiming" class="input"><option value="perRound" selected>ラウンド毎</option><option value="gameEnd">ゲームの最後</option></select><em>標準はラウンド毎</em></label>
             <label class="input-label option-toggle"><span class="rule-title"><span>シュート・ザ・ピッグ</span><button type="button" class="rule-help-btn" data-help-rule="shootThePigEnabled" aria-label="シュート・ザ・ピッグのヘルプ">?</button></span><select id="shootThePigEnabled" class="input"><option value="false">OFF</option><option value="true" selected>ON</option></select><em>標準ON。両方とも手札・各プレイヤー1回</em></label>
@@ -4270,6 +5418,12 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
       </nav>
     </header>
 
+    <div id="connectionRecovery" class="connection-recovery" hidden role="status" aria-live="assertive">
+      <span class="recovery-icon" aria-hidden="true">↻</span>
+      <div class="recovery-copy"><b id="recoveryTitle">再接続しています</b><small id="recoveryText">同じ席と手札へ復帰します。</small></div>
+      <button type="button" class="recovery-retry" data-reconnect-now>今すぐ再接続</button>
+    </div>
+
     <div id="roundStatus" class="round-status game-round-status"></div>
 
     <section class="game-arena" aria-label="ゲーム卓">
@@ -4286,7 +5440,7 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
     <section id="pickBox" class="pick legacy-pick" style="display:none"></section>
 
     <section class="hand-dock" aria-label="あなたの手札">
-      <div class="hand-dock-title"><span>YOUR HAND</span><b id="handCountLabel">0枚</b></div>
+      <div class="hand-dock-title"><span>あなたの手札</span><b id="handCountLabel">0枚</b><button type="button" id="handViewToggle" class="hand-view-toggle" data-hand-view-toggle aria-pressed="false"><span aria-hidden="true">↔</span> 広げる</button></div>
       <div class="hand-wrap"><div id="handNote"></div><div id="handAlerts"></div><div id="hand" class="hand"></div></div>
     </section>
 
@@ -4296,7 +5450,8 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
         <div class="utility-head"><h2 id="utilityTitle">ゲーム情報</h2><button type="button" class="utility-close" data-close-game-panel aria-label="閉じる">×</button></div>
         <section class="utility-section utility-log" data-utility-view="log"><h3>進行ログ</h3><div id="log" class="log"></div></section>
         <section class="utility-section utility-rules" id="ruleSummary" data-utility-view="rules">
-          <h3>🐷 ルール早見表</h3>
+          <h3>🐷 この対戦のルール</h3>
+          <div id="activeRuleSummary" class="active-rule-summary" aria-live="polite"></div>
       <div class="rule-summary">
         <div class="rule-card">
           <h3>基本</h3>
@@ -4329,10 +5484,10 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
         <div class="rule-card">
           <h3>得点・危険カード</h3>
           <ul>
-            <li>スート：🍎リンゴ（赤）/ 🌽トウモロコシ（黄）/ 🥬キャベツ（緑）/ 泥（灰）。</li>
+            <li>スート：🍎リンゴ（赤）/ 🌽トウモロコシ（黄）/ 🥬キャベツ（緑）/ 💧ぬかるみ（灰）。</li>
             <li>ごちそう山：+1点/枚。</li>
-            <li>残り通常手札：標準はリンゴ・トウモロコシ・キャベツが1枚-3点、通常の泥が1枚-6点。全スート-3、数字分、または他-1・泥-3にも変更可。</li>
-            <li>マッド・ピッグ：泥11。標準ON。数字分以外では手札・山とも固有-13点で、通常カード失点と重複しない。数字分失点では手札なら-40点、山なら+1点後に-40点。</li>
+            <li>残り通常手札：標準はリンゴ・トウモロコシ・キャベツが1枚-3点、通常の💧が1枚-6点。全スート-3、数字分、または他-1・💧-3にも変更可。</li>
+            <li>マッド・ピッグ：💧11。標準ON。数字分以外では手札・山とも固有-13点で、通常カード失点と重複しない。数字分失点では手札なら-40点、山なら+1点後に-40点。</li>
             <li>ババブタ：標準-20点。失点タイミングはラウンド毎/ゲーム最後から選択。</li>
             <li>シュート・ザ・ピッグON時：ババブタ＋マッド・ピッグの両方が手札にある状態でラウンド終了すると発動。本人の対象失点0、他全員-10点。各プレイヤー1ゲーム1回までで、山のマッドは条件に含めない。</li>
           </ul>
@@ -4347,7 +5502,7 @@ body.gameplay-mode:not(.finished-mode) .hype-toast{left:12px;bottom:190px;transf
         <div class="rule-card">
           <h3>標準設定</h3>
           <ul>
-            <li>3ラウンド / ピック対象2枚 / リンゴ・トウモロコシ・キャベツは-3点・通常の泥は-6点。</li>
+            <li>3ラウンド / ピック対象2枚 / リンゴ・トウモロコシ・キャベツは-3点・通常の💧は-6点。</li>
             <li>マッド・ピッグあり / ババブタ-20点・ラウンド毎。</li>
             <li>3枚パスなし / 開始時ペア捨てなし / シュートON（両方とも手札・各自1回）。</li>
           </ul>
@@ -4367,6 +5522,10 @@ let ws, state=null, myId=null;
 let initialPairSelectedId=null;
 let passSelectedIds=[];
 let pickTargetSelectedIds=[];
+let selectedPlayCardId=null;
+let playCommitPending=false;
+let handExpanded=false;
+let pendingConnectIntent='idle';
 let __lastPickReady=false;
 let __lastCommentaryRenderKey='';
 let __lastPlayersRenderKey='';
@@ -4375,6 +5534,7 @@ let __lastRoundModalKey='';
 let __lastScoreRenderKey='';
 let __lastShootPigEventId='';
 let __lastBabaDrawEventId='';
+let __lastMomentEventId='';
 let __lastLogRenderKey='';
 let __lastLastTrickKey='';
 let __lastLegacyPickKey='';
@@ -4385,7 +5545,9 @@ let __ruleHelpEscBound=false;
 let __ruleHelpOpenAt=0;
 let __ruleHelpCloseAt=0;
 let __lastHandRenderKey='';
+let __lastHandCardIds=[];
 let __lastTableRenderKey='';
+let __lastTrickMotionIds=[];
 let __lastSceneEffectKey='';
 let __pickTargetVisualOrderKey='';
 let __pickTargetVisualOrderIds=[]; // 互換用。候補選択画面は現在ソート表示。
@@ -4393,11 +5555,11 @@ const SUIT_UI=Object.freeze({
   apple:{name:'リンゴ',shortName:'リンゴ',icon:'🍎',className:'apple',art:'🐷🍎',colorName:'赤'},
   corn:{name:'トウモロコシ',shortName:'コーン',icon:'🌽',className:'corn',art:'🐷🌽',colorName:'黄'},
   cabbage:{name:'キャベツ',shortName:'キャベツ',icon:'🥬',className:'cabbage',art:'🐷🥬',colorName:'緑'},
-  mud:{name:'泥',shortName:'泥',icon:'泥',className:'mud',art:'🐷泥',colorName:'灰'}
+  mud:{name:'ぬかるみ',shortName:'💧',icon:'💧',className:'mud',art:'🐷💧',colorName:'灰'}
 });
 function suitUi(suit){ return SUIT_UI[suit] || {name:String(suit || ''),shortName:String(suit || ''),icon:'?',className:'mud',art:'🐷?',colorName:'灰'}; }
-function suitDisplay(suit){ const def=suitUi(suit); return `${def.icon} ${def.name}`; }
-function suitShortDisplay(suit){ const def=suitUi(suit); return `${def.icon} ${def.shortName}`; }
+function suitDisplay(suit){ const def=suitUi(suit); return suit === 'mud' ? def.icon : `${def.icon} ${def.name}`; }
+function suitShortDisplay(suit){ const def=suitUi(suit); return suit === 'mud' ? def.icon : `${def.icon} ${def.shortName}`; }
 const faces=['🐷','🐱','🐶','🦊'];
 
 
@@ -4454,7 +5616,11 @@ function applyDeviceUiMode(){
   const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
   const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
   const portrait = h >= w;
-  const phone = (w <= 720 && coarse) || (w <= 640);
+  const shortSide = Math.min(w,h);
+  const longSide = Math.max(w,h);
+  // 横向きスマホは幅が800〜950pxになるため、幅だけでタブレット判定しない。
+  // 短辺・長辺・タッチ特性を組み合わせ、タブレットとは明確に分離する。
+  const phone = w <= 640 || ((coarse || noHover) && shortSide <= 520 && longSide <= 1000);
   const tablet = !phone && coarse && w <= 1180;
   document.body.classList.toggle('ui-phone', phone);
   document.body.classList.toggle('ui-phone-portrait', phone && portrait);
@@ -4463,6 +5629,12 @@ function applyDeviceUiMode(){
   document.body.classList.toggle('ui-desktop', !phone && !tablet);
   document.body.classList.toggle('ui-touch', coarse || noHover);
   document.body.classList.toggle('mobile-table-compact', phone);
+  const viewportKey=`${w}x${h}`;
+  if(document.body.dataset.handViewportKey !== viewportKey){
+    document.body.dataset.handViewportKey=viewportKey;
+    __lastHandRenderKey='';
+    if(state) requestAnimationFrame(()=>renderHand());
+  }
 }
 window.addEventListener('resize', applyDeviceUiMode);
 window.addEventListener('orientationchange', applyDeviceUiMode);
@@ -4489,13 +5661,15 @@ function renderSceneEffects(){
   let label='';
   let symbols=[];
   if(pp?.result?.drawn?.joker){ mode='danger'; label='DANGER · BABA PIG'; symbols=['🃏','⚠️','💀','🐷']; }
+  else if(state.pairCleanEvent){ mode='pair'; label='PAIR PURIFICATION'; symbols=['✨','💫','🐷','✨']; }
+  else if(state.madPigEvent){ mode='danger'; label='DANGER · MAD PIG'; symbols=['💧','☠️','⚠️','🐷']; }
   else if(pp?.result?.paired){ mode='pair'; label='PAIR CLEAN'; symbols=['✨','💫','🐷','✨']; }
   else if(state.roundStart){ mode='round'; label=`ROUND ${state.round || 1}`; symbols=['✨','🐷','✨']; }
   else if(state.trickReview){ mode='review'; label='TRICK COMPLETE'; symbols=['👑','✨','🐽','✨']; }
   else if(pp){ mode='pick'; label='PICK TIME'; symbols=['🐽','?','🃏']; }
   else if(state.isYourTurn){ mode='turn'; label='YOUR TURN'; symbols=[]; }
   else if((state.trick||[]).length){ mode='play'; label=`CARD ${(state.trick||[]).length}/4`; symbols=['✦','•','✦']; }
-  const key=[mode,label,state.round,state.current,state.roundStart?.expiresAt||'',state.trickReview?.until||'',pp?.result?.drawn?.id||'',(state.trick||[]).map(x=>x.card?.id||'').join(',')].join('|');
+  const key=[mode,label,state.round,state.current,state.roundStart?.expiresAt||'',state.trickReview?.until||'',state.pairCleanEvent?.id||'',state.madPigEvent?.id||'',pp?.result?.drawn?.id||'',(state.trick||[]).map(x=>x.card?.id||'').join(',')].join('|');
   if(key===__lastSceneEffectKey) return;
   __lastSceneEffectKey=key;
   if(!mode){ el.className='scene-effects'; el.innerHTML=''; return; }
@@ -4511,9 +5685,14 @@ function renderSceneEffects(){
 
 function hypeByState(){
   if(!state) return;
-  const key = `${state.phase}:${state.round}:${state.roundStart?.expiresAt||''}:${state.trickReview?.until||''}:${state.pendingPick?.winnerPid ?? ''}:${state.pendingPick?.weakestPid ?? ''}:${state.pendingPick?.readyAt || ''}:${state.pendingPick?.targetSelectionRequired && !state.pendingPick?.targetSelectionDone ? 'target' : ''}:${state.pendingPick?.pairChoice ? 'pair' : ''}:${state.pendingPick?.result?.drawn?.id || ''}:${state.pendingPick?.result?.text || ''}`;
+  const key = `${state.phase}:${state.round}:${state.roundStart?.expiresAt||''}:${state.trickReview?.until||''}:${state.pairCleanEvent?.id||''}:${state.madPigEvent?.id||''}:${state.pendingPick?.winnerPid ?? ''}:${state.pendingPick?.weakestPid ?? ''}:${state.pendingPick?.readyAt || ''}:${state.pendingPick?.targetSelectionRequired && !state.pendingPick?.targetSelectionDone ? 'target' : ''}:${state.pendingPick?.pairChoice ? 'pair' : ''}:${state.pendingPick?.result?.drawn?.id || ''}:${state.pendingPick?.result?.text || ''}`;
   if(key===__lastHypeKey) return;
   __lastHypeKey=key;
+  // 専用シネマティックと同じ内容のトーストは重ねない。
+  if(state.shootPigEvent || state.pairCleanEvent || state.madPigEvent || state.pendingPick?.result?.drawn?.joker) return;
+  // スマホでは専用ピック画面・結果バーと同じ通知を重ねない。
+  // 卓上の操作領域を守りつつ、scene-effects 側の演出は維持する。
+  if(document.body.classList.contains('ui-phone') && (state.pendingPick || state.trickReview || state.roundStart)) return;
   if(state.pendingPick?.result?.drawn?.joker) hypeToast('🃏 ババブタ公開！空気が変わった', 'danger');
   else if(state.pendingPick?.result?.paired) hypeToast('✨ ペア浄化！手札が軽くなった', 'success');
   else if(state.pendingPick?.targetSelectionRequired && !state.pendingPick?.targetSelectionDone) hypeToast('🎯 ピック候補を選ぶ', 'pick');
@@ -4529,20 +5708,41 @@ function hypeByState(){
 
 
 
-const RECONNECT_KEY='pipi_tori_reconnect_v1';
+const RECONNECT_KEY='pipi_tori_reconnect_v2';
+const LEGACY_RECONNECT_KEY='pipi_tori_reconnect_v1';
 let reconnectTimer=null;
+let reconnectHandshakeTimer=null;
+let socketOpenTimer=null;
+let heartbeatTimer=null;
 let reconnectAttempts=0;
 let intentionalClose=false;
+let reconnectBlockedElsewhere=false;
+let resumeToken='';
+let lastServerActivityAt=0;
+let socketGeneration=0;
+let reconnectInFlight=false;
 
-function saveReconnectInfo(code, playerId, name){
+function saveReconnectInfo(code, playerId, name, token=resumeToken, phase=state?.phase){
   try{
-    localStorage.setItem(RECONNECT_KEY, JSON.stringify({code, playerId, name, savedAt:Date.now()}));
+    const previous=loadReconnectInfo() || {};
+    const next={
+      ...previous,
+      code:code || previous.code,
+      playerId:playerId || previous.playerId,
+      name:name || previous.name || '子ブタ',
+      resumeToken:token || previous.resumeToken || '',
+      phase:phase || previous.phase || 'lobby',
+      active:(phase || previous.phase) !== 'finished',
+      savedAt:Date.now()
+    };
+    localStorage.setItem(RECONNECT_KEY, JSON.stringify(next));
+    localStorage.removeItem(LEGACY_RECONNECT_KEY);
   }catch(e){}
 }
 
 function loadReconnectInfo(){
   try{
-    const raw=localStorage.getItem(RECONNECT_KEY);
+    const raw=localStorage.getItem(RECONNECT_KEY) || localStorage.getItem(LEGACY_RECONNECT_KEY);
     if(!raw) return null;
     const data=JSON.parse(raw);
     if(!data || !data.code || !data.playerId) return null;
@@ -4556,30 +5756,101 @@ function updateReconnectButton(){
   const btn=document.getElementById('reconnect');
   if(!btn) return;
   const data=loadReconnectInfo();
-  btn.style.display=data ? '' : 'none';
-  if(data) btn.textContent=`前回の部屋 ${data.code} に復帰`;
+  btn.style.display=data?.active ? '' : 'none';
+  if(data?.active) btn.textContent=`前回の部屋 ${data.code} に復帰`;
 }
 
 function setConnStatus(text){
   const el=document.getElementById('connStatus');
-  if(el) el.textContent=text;
+  if(!el) return;
+  el.textContent=text;
+  const parent=el.closest('.connection-status');
+  if(parent){
+    const value=String(text || '');
+    parent.dataset.conn = /接続済|復帰済/.test(value) ? 'online'
+      : /オフライン|切断|要確認/.test(value) ? 'offline'
+      : /不安定/.test(value) ? 'warning'
+      : 'busy';
+  }
 }
 
-function stopReconnectLoop(){
+function showConnectionRecovery(title, text, mode='reconnecting'){
+  const panel=document.getElementById('connectionRecovery');
+  if(!panel) return;
+  panel.hidden=false;
+  panel.dataset.mode=mode;
+  const titleEl=document.getElementById('recoveryTitle');
+  const textEl=document.getElementById('recoveryText');
+  if(titleEl) titleEl.textContent=title;
+  if(textEl) textEl.textContent=text;
+}
+
+function hideConnectionRecovery(){
+  const panel=document.getElementById('connectionRecovery');
+  if(panel) panel.hidden=true;
+}
+
+function stopSocketHealth(){
+  if(heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer=null; }
+}
+
+function startSocketHealth(socket, generation){
+  stopSocketHealth();
+  lastServerActivityAt=Date.now();
+  heartbeatTimer=setInterval(()=>{
+    if(socketGeneration !== generation || socket !== ws || socket.readyState !== WebSocket.OPEN){
+      stopSocketHealth();
+      return;
+    }
+    if(Date.now() - lastServerActivityAt > 35000){
+      try{ socket.close(4001, 'heartbeat timeout'); }catch(e){}
+      return;
+    }
+    try{ socket.send(JSON.stringify({type:'ping', at:Date.now()})); }catch(e){}
+  }, 10000);
+}
+
+function stopReconnectLoop(resetAttempts=true){
   if(reconnectTimer){ clearTimeout(reconnectTimer); reconnectTimer=null; }
-  reconnectAttempts=0;
+  if(reconnectHandshakeTimer){ clearTimeout(reconnectHandshakeTimer); reconnectHandshakeTimer=null; }
+  reconnectInFlight=false;
+  if(resetAttempts) reconnectAttempts=0;
 }
 
-function scheduleReconnect(){
+function reconnectPayload(data){
+  return {type:'reconnect', code:data.code, playerId:data.playerId, name:data.name || document.getElementById('name')?.value || '子ブタ', resumeToken:data.resumeToken || resumeToken || ''};
+}
+
+function scheduleReconnect(immediate=false){
   const data=loadReconnectInfo();
-  if(!data || intentionalClose) return;
+  if(!data || data.active===false || intentionalClose || reconnectBlockedElsewhere) return;
   if(reconnectTimer) return;
-  const delay=Math.min(10000, 1200 + reconnectAttempts*900);
+  if(typeof navigator !== 'undefined' && navigator.onLine === false){
+    setConnStatus('オフライン');
+    showConnectionRecovery('通信を待っています', 'ネットワークが戻ると自動で同じ席へ復帰します。', 'offline');
+    return;
+  }
+  // CONNECTING のまま固着したソケットを見て再試行予約を捨てない。
+  // 開通または接続開始タイムアウトまで短周期で再確認する。
+  if(ws && ws.readyState===WebSocket.CONNECTING){
+    showConnectionRecovery('接続を確認しています', '応答がない場合は自動で新しい接続に切り替えます。', 'reconnecting');
+    reconnectTimer=setTimeout(()=>{
+      reconnectTimer=null;
+      scheduleReconnect(false);
+    }, 1200);
+    return;
+  }
+  if(ws && ws.readyState===WebSocket.OPEN) return;
+  const delays=[120,700,1400,2600,4500,7000,10000];
+  const delay=immediate ? 80 : delays[Math.min(reconnectAttempts, delays.length-1)];
   reconnectAttempts++;
+  const seconds=Math.max(1, Math.ceil(delay/1000));
+  showConnectionRecovery('再接続しています', delay<500 ? '同じ席と手札を確認しています。' : `${seconds}秒以内に自動で再試行します。`, 'reconnecting');
   reconnectTimer=setTimeout(()=>{
     reconnectTimer=null;
-    if(ws && (ws.readyState===0 || ws.readyState===1)) return;
-    connect(()=>send({type:'reconnect', code:data.code, playerId:data.playerId, name:data.name || $('name').value || '子ブタ'}), true);
+    if(ws && ws.readyState===WebSocket.OPEN) return;
+    if(ws && ws.readyState===WebSocket.CONNECTING){ scheduleReconnect(false); return; }
+    connect(()=>send(reconnectPayload(data)), true);
   }, delay);
 }
 
@@ -4593,6 +5864,7 @@ function openGameUtilityPanel(view='log'){
     section.hidden = section.dataset.utilityView !== view;
   });
   if(title) title.textContent = view === 'rules' ? 'ルール早見表' : '進行ログ';
+  if(view === 'rules') renderSelectedRuleSummary();
   panel.hidden = false;
   panel.setAttribute('aria-hidden','false');
   panel.querySelector('.utility-close')?.focus({preventScroll:true});
@@ -4633,6 +5905,7 @@ function setCreateButtonState(mode, text=''){
   const feedback = $('createFeedback');
   if(!btn) return;
   btn.dataset.state = mode || 'idle';
+  if(feedback) feedback.dataset.tone = mode === 'error' ? 'error' : mode === 'created' ? 'success' : 'neutral';
   btn.classList.toggle('is-creating', mode === 'creating');
   btn.classList.toggle('is-created', mode === 'created');
   btn.classList.toggle('is-error', mode === 'error');
@@ -4706,18 +5979,18 @@ const RULE_HELP_TEXTS = {
     title:'残り手札の失点',
     body:[
       'ラウンド終了時・ゲーム終了時に、残った通常カードをどう失点にするかを決めます。',
-      '標準：リンゴ・トウモロコシ・キャベツは1枚-3点、通常の泥は1枚-6点。泥を残すほど重くなります。',
+      '標準：リンゴ・トウモロコシ・キャベツは1枚-3点、通常の💧は1枚-6点。💧を残すほど重くなります。',
       '全スート1枚-3点：傾斜のないシンプルな設定です。',
       '数字分失点：高い数字ほど危険になり、手札整理がシビアになります。',
-      '1枚-1点、泥-3点：泥スート管理が重要になります。マッド・ピッグON時の泥11は、通常の泥失点ではなくマッド失点を優先します。'
+      '1枚-1点、💧-3点：💧スート管理が重要になります。マッド・ピッグON時の💧11は、通常の💧失点ではなくマッド失点を優先します。'
     ]
   },
   madPigEnabled:{
     title:'マッド・ピッグ',
     body:[
-      '灰色の泥スート11を危険カードとして扱うルールです。',
-      'ONの場合、数字分以外では泥11は手札・ごちそう山とも固有-13点です。通常カード失点とは重複しません。',
-      'OFFの場合、泥11は普通のカードです。',
+      '灰色の💧スート11を危険カードとして扱うルールです。',
+      'ONの場合、数字分以外では💧11は手札・ごちそう山とも固有-13点です。通常カード失点とは重複しません。',
+      'OFFの場合、💧11は普通のカードです。',
       'シュート・ザ・ピッグはマッド・ピッグONの時だけ選べます。'
     ]
   },
@@ -4790,7 +6063,7 @@ const RULE_PRESETS = {
     values:{rounds:'3',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-30',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'6',passThreeEnabled:'false',initialPairDiscardEnabled:'false'}
   },
   strategic:{
-    label:'ストラテジー', description:'泥スート管理、3枚パス、開始ペアを使う長期の読み合いです。',
+    label:'ストラテジー', description:'💧スート管理、3枚パス、開始ペアを使う長期の読み合いです。',
     values:{rounds:'5',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-20',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'2',passThreeEnabled:'true',initialPairDiscardEnabled:'true'}
   }
 };
@@ -4865,11 +6138,11 @@ function buildMatchTrendDescription(cfg){
   else { tags.push('標準テンポ'); points.push('3ラウンド中心の標準テンポです。運と戦略のバランスが取りやすい設定です。'); }
 
   if(cfg.penaltyMode === 'faceValue'){ tags.push('高数字が危険'); strategy += 2; pressure += 1; points.push('数字分失点なので、高い数字を残すほど重くなります。高札の処理判断が重要です。'); }
-  else if(cfg.penaltyMode === 'mud6'){ tags.push('泥重点管理'); strategy += 2; pressure += 2; points.push('標準の泥-6/他-3です。通常の泥は他スートの2倍重く、トリックで処理する判断が重要です。マッドは固有-13点で重複しません。'); }
-  else if(cfg.penaltyMode === 'mudSuit'){ tags.push('泥管理'); strategy += 2; pressure += 1; points.push('泥スートが重い設定です。泥をいつ処理するか、マッド・ピッグをどう扱うかが焦点になります。'); }
+  else if(cfg.penaltyMode === 'mud6'){ tags.push('💧重点管理'); strategy += 2; pressure += 2; points.push('標準の💧-6/他-3です。通常の💧は他スートの2倍重く、トリックで処理する判断が重要です。マッドは固有-13点で重複しません。'); }
+  else if(cfg.penaltyMode === 'mudSuit'){ tags.push('💧管理'); strategy += 2; pressure += 1; points.push('💧スートが重い設定です。💧をいつ処理するか、マッド・ピッグをどう扱うかが焦点になります。'); }
   else { tags.push('分かりやすい失点'); points.push('残り手札は1枚-3点です。初プレイでも得点感覚が分かりやすいです。'); }
 
-  if(cfg.madPig){ tags.push('マッドあり'); pressure += 1; points.push('泥11が危険カードになります。取る・捨てる・ペアにする判断で差が出ます。'); }
+  if(cfg.madPig){ tags.push('マッドあり'); pressure += 1; points.push('💧11が危険カードになります。取る・捨てる・ペアにする判断で差が出ます。'); }
   else { tags.push('マッドなし'); points.push('マッド・ピッグなしなので、危険カードは主にババブタ中心です。少し軽めの展開になります。'); if(cfg.shoot) warnings.push('マッド・ピッグなしのため、シュート・ザ・ピッグは自動的にOFFになります。'); }
 
   if(cfg.jokerPenalty >= 30){ tags.push('ババ重め'); chaos += 2; pressure += 2; points.push(`ババブタ失点が-${cfg.jokerPenalty}点と重く、ババブタ公開ピックの盛り上がりが大きくなります。`); }
@@ -5041,10 +6314,28 @@ setupRuleSelectionHelpers();
 $('create').onclick=()=>{ 
   syncShootThePigAvailability();
   intentionalClose=false;
+  reconnectBlockedElsewhere=false;
+  pendingConnectIntent='create';
   setCreateButtonState('creating');
   connect(()=>send({type:'create', name:$('name').value, rounds:Number($('rounds').value || 3), madPigEnabled:$('madPigEnabled').value==='true', shootThePigEnabled:$('shootThePigEnabled').value==='true', jokerPenalty:Number($('jokerPenalty').value || -20), jokerPenaltyTiming:$('jokerPenaltyTiming').value, initialPairDiscardEnabled:$('initialPairDiscardEnabled').value==='true', passThreeEnabled:$('passThreeEnabled').value==='true', penaltyMode:$('penaltyMode').value, pickTargetCount:Number($('pickTargetCount').value || 2)}));
 };
-$('join').onclick=()=>{ setCreateButtonState('idle', '部屋コードで参加します。'); intentionalClose=false; const saved=loadReconnectInfo(); connect(()=>send({type:'join', name:$('name').value, code:$('code').value, playerId:saved?.playerId || null})); };
+$('join').onclick=()=>{
+  setCreateButtonState('idle', '部屋コードで参加します。');
+  intentionalClose=false;
+  reconnectBlockedElsewhere=false;
+  const saved=loadReconnectInfo();
+  const enteredCode=String($('code').value || '').toUpperCase().trim();
+  if(!/^[A-Z0-9]{4}$/.test(enteredCode)){
+    const feedback=$('createFeedback');
+    if(feedback){ feedback.dataset.tone='error'; feedback.textContent='部屋コードを半角4文字で入力してください。'; }
+    $('code').focus();
+    hypeToast('部屋コードは半角4文字です','danger');
+    return;
+  }
+  pendingConnectIntent='join';
+  const sameRoom=saved && saved.code===enteredCode;
+  connect(()=>send({type:'join', name:$('name').value, code:enteredCode, playerId:sameRoom ? saved.playerId : null, resumeToken:sameRoom ? saved.resumeToken || '' : ''}));
+};
 $('start').onclick=()=>{ 
   const btn=$('start');
   if(btn && !btn.disabled){
@@ -5055,7 +6346,54 @@ $('start').onclick=()=>{
 };
 $('addCpu').onclick=()=>send({type:'addCpu'});
 $('removeCpu').onclick=()=>send({type:'removeCpu'});
-$('reconnect').onclick=()=>{ const data=loadReconnectInfo(); if(!data) return; setCreateButtonState('creating','前回の部屋へ復帰しています。'); intentionalClose=false; $('code').value=data.code; if(data.name) $('name').value=data.name; connect(()=>send({type:'reconnect', code:data.code, playerId:data.playerId, name:data.name || $('name').value || '子ブタ'}), true); };
+function reconnectSavedRoom(manual=false){
+  const data=loadReconnectInfo();
+  if(!data) return;
+  intentionalClose=false;
+  reconnectBlockedElsewhere=false;
+  resumeToken=data.resumeToken || resumeToken || '';
+  $('code').value=data.code;
+  if(data.name) $('name').value=data.name;
+  if(manual) setCreateButtonState('creating','前回の部屋へ復帰しています。');
+  stopReconnectLoop(false);
+  if(ws && ws.readyState===WebSocket.OPEN){
+    try{ ws.close(4002, 'manual reconnect'); }catch(e){}
+    setTimeout(()=>scheduleReconnect(true), 80);
+    return;
+  }
+  if(ws && ws.readyState===WebSocket.CONNECTING){
+    const stale=ws;
+    socketGeneration++;
+    ws=null;
+    if(socketOpenTimer){ clearTimeout(socketOpenTimer); socketOpenTimer=null; }
+    try{ stale.close(4002,'manual reconnect'); }catch(e){}
+  }
+  scheduleReconnect(true);
+}
+$('reconnect').onclick=()=>reconnectSavedRoom(true);
+document.addEventListener('click', ev=>{
+  if(!ev.target?.closest?.('[data-reconnect-now]')) return;
+  ev.preventDefault();
+  reconnectSavedRoom(true);
+});
+window.addEventListener('online', ()=>{
+  if(reconnectBlockedElsewhere) return;
+  intentionalClose=false;
+  setConnStatus('復帰準備');
+  scheduleReconnect(true);
+});
+window.addEventListener('offline', ()=>{
+  setConnStatus('オフライン');
+  showConnectionRecovery('通信を待っています','ネットワークが戻ると自動で同じ席へ復帰します。','offline');
+});
+window.addEventListener('pageshow', ()=>{
+  const data=loadReconnectInfo();
+  if(!reconnectBlockedElsewhere && data?.active && (!ws || ws.readyState>WebSocket.OPEN)) scheduleReconnect(true);
+});
+document.addEventListener('visibilitychange', ()=>{
+  const data=loadReconnectInfo();
+  if(!reconnectBlockedElsewhere && document.visibilityState==='visible' && data?.active && (!ws || ws.readyState>WebSocket.OPEN)) scheduleReconnect(true);
+});
 
 // Edge/PCブラウザ対策：インラインonclickではなくイベント委任でピックする。
 // DOMのidやwindowプロパティとの名前衝突を避け、pointer/click両方に対応する。
@@ -5068,7 +6406,15 @@ function handlePickButtonEvent(ev){
   if(now - __lastPickTapAt < 350) return; // pointerup + click の二重送信防止
   __lastPickTapAt = now;
   ev.preventDefault();
-  requestPick(btn.dataset.pickIndex);
+  btn.classList.add('is-picking');
+  btn.setAttribute('aria-busy','true');
+  document.querySelectorAll('#table .pick-card').forEach(cardBtn=>{ cardBtn.disabled=true; });
+  effectVibrate(14);
+  if(!requestPick(btn.dataset.pickIndex)){
+    btn.classList.remove('is-picking');
+    btn.removeAttribute('aria-busy');
+    document.querySelectorAll('#table .pick-card').forEach(cardBtn=>{ cardBtn.disabled=false; });
+  }
 }
 document.addEventListener('pointerup', handlePickButtonEvent);
 document.addEventListener('click', handlePickButtonEvent);
@@ -5081,8 +6427,13 @@ function handlePairChoiceEvent(ev){
   if(now - __lastPairTapAt < 350) return;
   __lastPairTapAt = now;
   ev.preventDefault();
-  if(btn.dataset.pairSkip === '1') requestPairChoice(null, true);
-  else requestPairChoice(btn.dataset.pairCardId, false);
+  const skip=btn.dataset.pairSkip === '1';
+  if(!skip){ btn.classList.add('is-cleansing'); btn.setAttribute('aria-busy','true'); effectVibrate([10,28,12]); }
+  document.querySelectorAll('#table [data-pair-card-id],#table [data-pair-skip]').forEach(choice=>{ choice.disabled=true; });
+  if(!requestPairChoice(skip ? null : btn.dataset.pairCardId, skip)){
+    btn.classList.remove('is-cleansing');btn.removeAttribute('aria-busy');
+    document.querySelectorAll('#table [data-pair-card-id],#table [data-pair-skip]').forEach(choice=>{ choice.disabled=false; });
+  }
 }
 document.addEventListener('pointerup', handlePairChoiceEvent);
 document.addEventListener('click', handlePairChoiceEvent);
@@ -5207,42 +6558,142 @@ document.addEventListener('click', handleInitialPairEvent);
 
 // Edge/PCブラウザ対策：手札カードもインラインonclickを使わずイベント委任で出す。
 // 2トリック目以降にDOM再描画やグローバル名解決の影響でクリック不能になる問題を防ぐ。
-let __lastCardTapAt = 0;
+let __lastCardPointerAt = 0;
+function playCardChoiceLabel(card){
+  if(!card) return 'カード';
+  if(card.joker) return 'ババブタ';
+  const suit=suitUi(card.suit);
+  return `${suit.icon}${card.rank}`;
+}
+
+function updatePlaySelectionUI(){
+  const hand=me()?.hand || [];
+  const selected=hand.find(card=>card.id===selectedPlayCardId);
+  document.querySelectorAll('#hand [data-card-id]').forEach(btn=>{
+    const active=!!selected && btn.dataset.cardId===selected.id;
+    btn.classList.toggle('is-selected', active);
+    btn.classList.toggle('is-committing', active && playCommitPending);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  if(state?.phase==='playing' && state?.isYourTurn && selected){
+    $('handNote').innerHTML=`<div class="notice info selected-card-notice"><div class="notice-title">${esc(playCardChoiceLabel(selected))} を選択中</div><div class="notice-body">同じカードをもう一度タップすると出します。</div></div>`;
+  }
+  renderRoundStatus();
+}
+
 function handleHandCardEvent(ev){
   const btn = ev.target && ev.target.closest ? ev.target.closest('[data-card-id]') : null;
   if(!btn || btn.disabled) return;
   const now = Date.now();
-  if(now - __lastCardTapAt < 350) return; // pointerup + click の二重送信防止
-  __lastCardTapAt = now;
+  if(ev.type==='click' && now - __lastCardPointerAt < 500) return; // pointerup後の合成clickだけを除外
+  if(ev.type==='pointerup') __lastCardPointerAt = now;
   ev.preventDefault();
   const cardId = btn.dataset.cardId;
   if(!state || !Array.isArray(state.playableCardIds) || !state.playableCardIds.includes(cardId)){
     // disabled属性が何らかの理由でズレた場合でも、誤送信を防ぐ。
     return;
   }
+  if(selectedPlayCardId !== cardId){
+    selectedPlayCardId=cardId;
+    playCommitPending=false;
+    updatePlaySelectionUI();
+    try{ navigator.vibrate?.(10); }catch(e){}
+    return;
+  }
+  if(playCommitPending) return;
+  playCommitPending=true;
+  updatePlaySelectionUI();
+  try{ navigator.vibrate?.([12,25,18]); }catch(e){}
   requestPlay(cardId);
 }
 document.addEventListener('pointerup', handleHandCardEvent);
 document.addEventListener('click', handleHandCardEvent);
+document.addEventListener('click', ev=>{
+  const toggle=ev.target?.closest?.('[data-hand-view-toggle]');
+  if(!toggle) return;
+  ev.preventDefault();
+  handExpanded=!handExpanded;
+  __lastHandRenderKey='';
+  renderHand();
+});
 
 function connect(after, isReconnect=false){
   if(ws && ws.readyState===1){ after(); return; }
-  stopReconnectLoop();
+  if(ws && ws.readyState===0){
+    if(isReconnect) scheduleReconnect(false);
+    return;
+  }
+  stopReconnectLoop(false);
+  reconnectInFlight=!!isReconnect;
+  intentionalClose=false;
   setConnStatus(isReconnect ? '復帰中' : '接続中');
   const proto = location.protocol==='https:'?'wss':'ws';
-  ws = new WebSocket(`${proto}://${location.host}`);
-  ws.onopen=()=>{ setConnStatus(isReconnect ? '復帰確認中' : '接続済'); after(); };
-  ws.onmessage=e=>{
-    const msg=JSON.parse(e.data);
+  const socket = new WebSocket(`${proto}://${location.host}`);
+  const generation=++socketGeneration;
+  ws=socket;
+  if(socketOpenTimer) clearTimeout(socketOpenTimer);
+  socketOpenTimer=setTimeout(()=>{
+    socketOpenTimer=null;
+    if(socket!==ws || generation!==socketGeneration || socket.readyState!==WebSocket.CONNECTING) return;
+    // OS/ブラウザ側の接続試行が固まっても、この世代を放棄して次の接続へ進める。
+    socketGeneration++;
+    ws=null;
+    reconnectInFlight=false;
+    try{ socket.close(4001,'open timeout'); }catch(e){}
+    setConnStatus('応答なし');
+    if(isReconnect){
+      showConnectionRecovery('接続を切り替えます', 'サーバー応答がないため、新しい接続で再試行します。', 'retry');
+      scheduleReconnect(true);
+    } else {
+      hideConnectionRecovery();
+      const errorText='接続に時間がかかっています。部屋作成または参加をもう一度お試しください。';
+      if(pendingConnectIntent==='create') setCreateButtonState('error',errorText);
+      else {
+        const feedback=$('createFeedback');
+        if(feedback){ feedback.dataset.tone='error'; feedback.textContent=errorText; }
+      }
+      pendingConnectIntent='idle';
+      hypeToast('⚠️ サーバー応答がありません。もう一度お試しください。','danger');
+    }
+  }, 10000);
+  socket.onopen=()=>{
+    if(socket !== ws || generation !== socketGeneration) return;
+    if(socketOpenTimer){ clearTimeout(socketOpenTimer); socketOpenTimer=null; }
+    lastServerActivityAt=Date.now();
+    startSocketHealth(socket, generation);
+    setConnStatus(isReconnect ? '復帰確認中' : '接続済');
+    after();
+    if(isReconnect){
+      if(reconnectHandshakeTimer) clearTimeout(reconnectHandshakeTimer);
+      reconnectHandshakeTimer=setTimeout(()=>{
+        reconnectHandshakeTimer=null;
+        if(reconnectInFlight && socket===ws && socket.readyState===WebSocket.OPEN){
+          showConnectionRecovery('復帰を再試行します', 'サーバーの応答を確認できないため、接続し直します。', 'retry');
+          try{ socket.close(4001, 'reconnect handshake timeout'); }catch(e){}
+        }
+      }, 8000);
+    }
+  };
+  socket.onmessage=e=>{
+    if(socket !== ws || generation !== socketGeneration) return;
+    lastServerActivityAt=Date.now();
+    let msg;
+    try{ msg=JSON.parse(e.data); }catch(err){ return; }
+    if(msg.type==='pong') return;
     if(msg.type==='created'||msg.type==='joined'||msg.type==='reconnected'){
+      reconnectBlockedElsewhere=false;
+      pendingConnectIntent='idle';
       myId=msg.playerId;
+      resumeToken=msg.resumeToken || resumeToken || loadReconnectInfo()?.resumeToken || '';
       $('roomInfo').style.display='block';
       $('roomCode').textContent=msg.code;
       if(msg.name) $('name').value=msg.name;
       $('code').value=msg.code;
-      saveReconnectInfo(msg.code, msg.playerId, msg.name || $('name').value || '子ブタ');
+      const ackPhase=msg.type==='reconnected' ? (state?.phase || loadReconnectInfo()?.phase || 'playing') : 'lobby';
+      saveReconnectInfo(msg.code, msg.playerId, msg.name || $('name').value || '子ブタ', resumeToken, ackPhase);
       updateReconnectButton();
       stopReconnectLoop();
+      hideConnectionRecovery();
       setConnStatus(msg.type==='reconnected' ? '復帰済' : '接続済');
       if(msg.type==='created'){
         setCreateButtonState('created', `部屋を作成しました。部屋コード ${msg.code} を共有できます。`);
@@ -5261,26 +6712,74 @@ function connect(after, isReconnect=false){
         const ms = Number(state.pendingPick.readyInMs ?? 0);
         state.pendingPick.clientReadyAt = Date.now() + Math.max(0, ms);
       }
+      if(state.phase==='roundEnd' && typeof state.roundEndAutoContinueInMs==='number'){
+        state.roundEndClientAutoContinueAt=Date.now()+Math.max(0,state.roundEndAutoContinueInMs);
+      }
+      if(state?.code && state?.you){
+        saveReconnectInfo(state.code, state.you, me()?.name || $('name').value || '子ブタ', resumeToken, state.phase);
+        updateReconnectButton();
+      }
+      if(reconnectInFlight){
+        stopReconnectLoop();
+        hideConnectionRecovery();
+        setConnStatus('復帰済');
+      }
       render();
     }
     if(msg.type==='errorMsg'){
       setConnStatus('要確認');
       if($('create')?.classList.contains('is-creating')) setCreateButtonState('error', msg.message || '部屋作成に失敗しました。');
-      alert(msg.message);
+      if(reconnectInFlight){
+        showConnectionRecovery('まだ復帰できません', `${msg.message || '復帰先を確認できません。'} 自動で再試行します。`, 'retry');
+        reconnectInFlight=false;
+        try{ socket.close(4001, 'reconnect rejected'); }catch(e){}
+      } else {
+        const errorText=msg.message || '操作を完了できませんでした。';
+        if(document.body.classList.contains('gameplay-mode') && $('message')) $('message').textContent=errorText;
+        else if($('create')?.classList.contains('is-creating')) setCreateButtonState('error', errorText);
+        else {
+          const feedback=$('createFeedback');
+          if(feedback){ feedback.dataset.tone='error'; feedback.textContent=errorText; }
+        }
+        hypeToast(`⚠️ ${errorText}`, 'danger');
+      }
       updateReconnectButton();
     }
   };
-  ws.onclose=()=>{
+  socket.onclose=(event)=>{
+    if(socket !== ws || generation !== socketGeneration) return;
+    if(socketOpenTimer){ clearTimeout(socketOpenTimer); socketOpenTimer=null; }
+    stopSocketHealth();
+    stopReconnectLoop(false);
+    playCommitPending=false;
+    updatePlaySelectionUI();
     if($('create')?.classList.contains('is-creating')) setCreateButtonState('error', '接続が切れました。もう一度試してください。');
-    setConnStatus('切断');
+    if(event.code===4000){
+      intentionalClose=true;
+      reconnectBlockedElsewhere=true;
+      setConnStatus('別画面で復帰');
+      showConnectionRecovery('別の画面で復帰済みです', 'この画面でも続ける場合は「今すぐ再接続」を押してください。', 'elsewhere');
+      return;
+    }
+    reconnectInFlight=false;
+    setConnStatus(navigator.onLine===false ? 'オフライン' : '切断');
     if($('phase')) $('phase').textContent='切断';
-    scheduleReconnect();
+    scheduleReconnect(false);
   };
-  ws.onerror=()=>{
+  socket.onerror=()=>{
+    if(socket !== ws || generation !== socketGeneration) return;
     setConnStatus('不安定');
   };
 }
-function send(obj){ if(ws && ws.readyState===1) ws.send(JSON.stringify(obj)); else { setConnStatus('切断'); scheduleReconnect(); } }
+function send(obj){
+  if(ws && ws.readyState===WebSocket.OPEN){
+    try{ ws.send(JSON.stringify(obj)); return true; }catch(e){}
+  }
+  setConnStatus('切断');
+  showConnectionRecovery('再接続しています','操作内容を保ったまま同じ席へ復帰します。','reconnecting');
+  scheduleReconnect(true);
+  return false;
+}
 function me(){ return state?.players.find(p=>p.id===state.you); }
 function isHost(){ return state && state.you===state.hostId; }
 function playerName(i){ return state?.players[i]?.name || '-'; }
@@ -5310,8 +6809,8 @@ function relativeSeatPosition(pid){
 
 function penaltyModeLabel(){
   if(state?.penaltyMode === 'faceValue') return '数字分失点';
-  if(state?.penaltyMode === 'mud6') return '泥-6/他-3';
-  if(state?.penaltyMode === 'mudSuit') return '泥-3/他-1';
+  if(state?.penaltyMode === 'mud6') return '💧-6/他-3';
+  if(state?.penaltyMode === 'mudSuit') return '💧-3/他-1';
   return '1枚-3点';
 }
 function madPigPenaltyDisplayLabel(){
@@ -5319,10 +6818,10 @@ function madPigPenaltyDisplayLabel(){
   return 'マッド固有失点';
 }
 function madPigHelpText(){
-  if(state?.penaltyMode === 'faceValue') return '泥11は-40点扱いです。';
-  if(state?.penaltyMode === 'mud6') return '泥11は通常の泥失点-6と重複せず、固有のマッド失点-13点です。';
-  if(state?.penaltyMode === 'mudSuit') return '泥11は通常の泥失点-3ではなく、マッド失点-13点を優先します。';
-  return '泥11は通常手札失点と重複せず、固有のマッド失点-13点です。';
+  if(state?.penaltyMode === 'faceValue') return '💧11は-40点扱いです。';
+  if(state?.penaltyMode === 'mud6') return '💧11は通常の💧失点-6と重複せず、固有のマッド失点-13点です。';
+  if(state?.penaltyMode === 'mudSuit') return '💧11は通常の💧失点-3ではなく、マッド失点-13点を優先します。';
+  return '💧11は通常手札失点と重複せず、固有のマッド失点-13点です。';
 }
 
 
@@ -5355,6 +6854,44 @@ function compactOptionChips(){
 function pickTargetModeLabel(){
   const n = Number(state?.pickTargetCount || 0);
   return n > 0 ? `候補${n}枚` : 'ピック絞らない';
+}
+
+function selectedPenaltyRuleText(){
+  if(state?.penaltyMode==='faceValue') return '残った通常カードは、カードの数字ぶん失点';
+  if(state?.penaltyMode==='mud6') return '残った💧は1枚-6点、🍎・🌽・🥬は1枚-3点';
+  if(state?.penaltyMode==='mudSuit') return '残った💧は1枚-3点、🍎・🌽・🥬は1枚-1点';
+  return '残った通常カードは全スート1枚-3点';
+}
+
+function renderSelectedRuleSummary(){
+  const target=$('activeRuleSummary');
+  if(!target || !state) return;
+  const rounds=Number(state.totalRounds || 3);
+  const pickCount=Number(state.pickTargetCount || 0);
+  const jokerTiming=state.jokerPenaltyTiming==='gameEnd' ? 'ゲーム終了時に一度' : '各ラウンド';
+  const madOn=state.madPigEnabled !== false;
+  const madText=!madOn
+    ? 'OFF：💧11は通常のぬかるみカード'
+    : state.penaltyMode==='faceValue'
+      ? 'ON：💧11。手札なら-40点、山なら+1点の後に-40点'
+      : 'ON：💧11。通常カード失点と重複せず固有-13点';
+  const shootText=madOn && state.shootThePigEnabled
+    ? 'ON：手札にババブタ＋マッド・ピッグを残すと、本人の対象失点0・他全員-10点（各自1回）'
+    : 'OFF';
+  const cards=[
+    ['ラウンド', `${rounds}ラウンド`],
+    ['手札の失点', selectedPenaltyRuleText()],
+    ['ババブタ', `-${Number(state.jokerPenalty ?? 20)}点・${jokerTiming}`],
+    ['マッド・ピッグ', madText],
+    ['シュート・ザ・ピッグ', shootText],
+    ['ピック候補', pickCount>0 ? `最弱側が${pickCount}枚に絞り、勝者がその中から1枚ピック` : '最弱の手札全体から勝者が1枚ピック'],
+    ['開始時3枚パス', state.passThreeEnabled ? 'ON：次の手番の人へ3枚渡す（ババブタ不可）' : 'OFF'],
+    ['開始時ペア捨て', state.initialPairDiscardEnabled ? 'ON：同じ数字のペアを任意で捨てる' : 'OFF']
+  ];
+  target.innerHTML=`
+    <div class="active-rule-chips">${compactOptionChips().map(chip=>`<span>${esc(chip)}</span>`).join('')}</div>
+    <div class="active-rule-basics"><b>共通の進め方</b><p>リードスートを持っていれば必ずフォロー。リードスートの最大が勝者、規定の最小が最弱。勝者は場の4枚を山へ取り、最弱から1枚ピックします。同じ数字はペアにできます。</p></div>
+    <div class="active-rule-grid">${cards.map(([name,value])=>`<article><b>${esc(name)}</b><p>${esc(value)}</p></article>`).join('')}</div>`;
 }
 
 function isMadPig(card){ return !!card && !card.joker && card.suit==='mud' && String(card.rank)==='11'; }
@@ -5399,9 +6936,14 @@ function render(){
   if(lobby) lobby.setAttribute('aria-hidden', inGame ? 'true' : 'false');
   document.body.classList.toggle('gameplay-mode', inGame);
   document.body.classList.toggle('finished-mode', state.phase === 'finished');
+  gameScreen?.classList.toggle('is-review-mode', !!state.trickReview);
   if(!inGame) closeGameUtilityPanel();
   if(state.phase !== 'passing') passSelectedIds = [];
   if(state.phase !== 'initialPair') initialPairSelectedId = null;
+  if(state.phase !== 'playing' || !state.isYourTurn || !state.playableCardIds?.includes(selectedPlayCardId)){
+    selectedPlayCardId=null;
+    playCommitPending=false;
+  }
   if(!state.pendingPick || !state.pendingPick.targetSelectionRequired || state.pendingPick.targetSelectionDone) pickTargetSelectedIds = [];
   $('roomInfo').style.display='block';
   if($('roomCode').textContent !== state.code) $('roomCode').textContent=state.code;
@@ -5422,8 +6964,8 @@ function render(){
   $('start').disabled = !(isHost() && state.phase==='lobby' && state.players.length===4);
   $('addCpu').disabled = !(isHost() && state.phase==='lobby' && state.players.length<4);
   $('removeCpu').disabled = !(isHost() && state.phase==='lobby' && state.players.some(p=>p.cpu));
-  updateLobbyActionUi(); renderRoundStatus(); renderRoundModal();
-  renderShootPigOverlay(); renderBabaDrawOverlay(); renderCommentary(); renderPlayers(); renderLastTrick(); renderTable(); renderSceneEffects(); normalizeTableBadges(); fixPickTargetBadgePosition(); renderHand(); renderPick(); renderLog(); renderScore(); hypeByState();
+  updateLobbyActionUi(); renderRoundStatus(); renderRoundModal(); renderSelectedRuleSummary();
+  renderShootPigOverlay(); renderBabaDrawOverlay(); renderMomentOverlay(); renderCommentary(); renderPlayers(); renderLastTrick(); renderTable(); renderSceneEffects(); normalizeTableBadges(); fixPickTargetBadgePosition(); renderHand(); renderPick(); renderLog(); renderScore(); hypeByState();
   if(state.trickReview && state.trickReview.until > Date.now() && !window.__reviewTimer){
     window.__reviewTimer = setInterval(()=>{
       if(!state || !state.trickReview || state.trickReview.until <= Date.now()){
@@ -5459,6 +7001,95 @@ function render(){
 
 
 
+function effectVibrate(pattern){
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+  try { navigator.vibrate?.(pattern); } catch(e) {}
+}
+
+function pairEventCardHTML(ev, index){
+  const card=Array.isArray(ev?.cards) ? ev.cards[index] : null;
+  if(card) return cardHTML(card, false);
+  const rank=esc(ev?.rank || '?');
+  return `<div class="pair-symbol-card" aria-label="数字${rank}のペア"><b>${rank}</b><span>🐷</span></div>`;
+}
+
+function renderMomentOverlay(){
+  const root=$('momentOverlay');
+  if(!root || !state) return;
+  const pairEv=state.pairCleanEvent;
+  const madEv=pairEv ? null : state.madPigEvent;
+  const ev=pairEv || madEv;
+  if(!ev){
+    // イベント状態が次へ進んでも、開始済みの短い演出は自身のタイマーで最後まで見せる。
+    // ロビーへ戻った場合だけ即時に片付ける。
+    if(state.phase==='lobby' && root.dataset.active==='1'){
+      clearTimeout(window.__momentOverlayTimer);
+      root.innerHTML='';root.dataset.active='0';root.classList.remove('fade-out');
+      document.body.classList.remove('pair-impact-active','mad-impact-active');
+    }
+    return;
+  }
+  const type=pairEv ? 'pair' : 'mad';
+  const key=String(ev.id || `${type}:${state.code}:${state.round}:${ev.playerPid ?? ev.ownerPid}:${ev.rank || ev.card?.id || ''}:${ev.source || ''}`);
+  if(__lastMomentEventId===key) return;
+  __lastMomentEventId=key;
+  clearTimeout(window.__momentOverlayTimer);
+  clearTimeout(window.__momentOverlayClearTimer);
+  root.className='moment-overlay';
+  root.dataset.active='1';
+  document.body.classList.remove('pair-impact-active','mad-impact-active');
+
+  if(type==='pair'){
+    document.body.classList.add('pair-impact-active');
+    const owner=esc(ev.playerName || playerName(ev.playerPid) || 'プレイヤー');
+    const title=ev.containsMadPig ? '危険札もペア浄化！' : 'ペア浄化！';
+    const sourceText=ev.source==='initial' ? '開始時ペアを袋から取り除きました' : '同じ数字の2枚がそろい、袋が軽くなりました';
+    root.innerHTML=`
+      <div class="moment-scrim" aria-hidden="true"></div>
+      <section class="moment-card moment-pair" aria-label="${escAttr(title)}">
+        <div class="moment-kicker">PAIR PURIFICATION</div>
+        <div class="moment-title">✨ ${esc(title)}</div>
+        <div class="moment-owner">${owner}</div>
+        <div class="pair-motion-stage" aria-hidden="true">
+          <div class="pair-motion-card left">${pairEventCardHTML(ev,0)}</div>
+          <div class="pair-clean-core"></div>
+          <div class="pair-motion-card right">${pairEventCardHTML(ev,1)}</div>
+          <div class="pair-clean-stamp">CLEAN!</div>
+        </div>
+        <div class="moment-copy">${esc(sourceText)}</div>
+        <div class="moment-particles" aria-hidden="true"><i style="--x:9%;--y:20%;--s:24px;--d:0s">✨</i><i style="--x:82%;--y:18%;--s:22px;--d:.12s">💫</i><i style="--x:14%;--y:72%;--s:19px;--d:.24s">🐷</i><i style="--x:82%;--y:73%;--s:21px;--d:.36s">✨</i></div>
+      </section>`;
+    effectVibrate([14,35,18]);
+  }else{
+    document.body.classList.add('mad-impact-active');
+    const owner=esc(ev.ownerName || playerName(ev.ownerPid) || 'プレイヤー');
+    const sourceText=ev.source==='trick' ? 'トリック勝利で、ごちそう山へ入りました' : 'ピックしたカードが手札へ入りました';
+    const penalty=state.penaltyMode==='faceValue' ? 40 : 13;
+    root.innerHTML=`
+      <div class="moment-scrim" aria-hidden="true"></div>
+      <section class="moment-card moment-mad" aria-label="マッド・ピッグ取得">
+        <div class="moment-kicker">DANGER CARD</div>
+        <div class="moment-title">☠️ マッド・ピッグ！</div>
+        <div class="moment-owner">${owner}</div>
+        <div class="mad-motion-stage" aria-hidden="true"><div class="mad-ripple"></div><div class="mad-card-rise">${cardHTML(ev.card,false)}</div></div>
+        <div class="mad-warning-line"><span>${esc(sourceText)}</span><span class="penalty">固有失点 -${penalty}</span></div>
+        <div class="moment-copy">💧11は通常の💧失点と重複しません。シュート条件なら逆転の弾になります。</div>
+        <div class="moment-particles" aria-hidden="true"><i style="--x:8%;--y:18%;--s:25px;--d:0s">💧</i><i style="--x:84%;--y:20%;--s:22px;--d:.12s">☠️</i><i style="--x:13%;--y:72%;--s:20px;--d:.24s">💧</i><i style="--x:82%;--y:75%;--s:22px;--d:.34s">⚠️</i></div>
+      </section>`;
+    effectVibrate([24,42,24,55,38]);
+  }
+
+  const holdMs=type==='pair' ? 2450 : 3200;
+  window.__momentOverlayTimer=window.setTimeout(()=>{
+    if(root.dataset.active!=='1') return;
+    root.classList.add('fade-out');
+    document.body.classList.remove('pair-impact-active','mad-impact-active');
+    window.__momentOverlayClearTimer=window.setTimeout(()=>{
+      root.innerHTML='';root.dataset.active='0';root.classList.remove('fade-out');
+    },520);
+  },holdMs);
+}
+
 function renderBabaDrawOverlay(){
   const root = $('babaDrawOverlay');
   if(!root || !state) return;
@@ -5474,8 +7105,8 @@ function renderBabaDrawOverlay(){
   }
   const winnerName = state.players?.[pp.winnerPid]?.name || '誰か';
   const weakestName = state.players?.[pp.weakestPid]?.name || '相手';
-  const key = `${state.code}:${state.round}:${pp.winnerPid}:${pp.weakestPid}:${drawn.id || ''}:${pp.result.text || ''}`;
-  if(__lastBabaDrawEventId === key && root.dataset.active === '1') return;
+  const key = String(pp.result.eventId || `${state.code}:${state.round}:${pp.winnerPid}:${pp.weakestPid}:${drawn.id || ''}:${pp.result.text || ''}`);
+  if(__lastBabaDrawEventId === key) return;
   __lastBabaDrawEventId = key;
   root.dataset.active='1';
   document.body.classList.add('baba-impact-active');
@@ -5488,6 +7119,7 @@ function renderBabaDrawOverlay(){
       <div class="baba-title">ババブタを引いた！</div>
       <div class="baba-name">${esc(winnerName)}</div>
       <div class="baba-route">${esc(weakestName)} の袋から公開ピック</div>
+      <div class="baba-draw-track" aria-hidden="true"><span class="baba-track-bag">🐽</span><span class="baba-track-line"></span><span class="baba-track-card"></span><span class="baba-track-shock">!</span></div>
       <div class="baba-card-pop">
         <div class="playing-card joker reveal-joker-card">
           <div class="rank">JOKER</div>
@@ -5505,6 +7137,7 @@ function renderBabaDrawOverlay(){
       </div>
     </div>
   `;
+  effectVibrate([35,55,90]);
   window.clearTimeout(window.__babaDrawOverlayTimer);
   window.__babaDrawOverlayTimer = window.setTimeout(()=>{
     if(root.dataset.active === '1'){
@@ -5516,7 +7149,7 @@ function renderBabaDrawOverlay(){
         root.classList.remove('fade-out');
       }, 700);
     }
-  }, 5600);
+  }, 4200);
 }
 
 function renderShootPigOverlay(){
@@ -5531,7 +7164,7 @@ function renderShootPigOverlay(){
     }
     return;
   }
-  if(__lastShootPigEventId === ev.id && root.dataset.active === '1') return;
+  if(__lastShootPigEventId === ev.id) return;
   __lastShootPigEventId = ev.id;
   root.dataset.active='1';
   document.body.classList.add('shoot-impact-active');
@@ -5546,20 +7179,22 @@ function renderShootPigOverlay(){
       <div class="shoot-combo-line">
         <span class="combo-piece">🃏 ババブタ保持</span>
         <b>＋</b>
-        <span class="combo-piece">泥11 マッドを手札保持</span>
+        <span class="combo-piece">💧11 マッドを手札保持</span>
       </div>
+      <div class="shoot-trajectory" aria-hidden="true"><span class="shoot-trajectory-line"></span><span class="shoot-projectile">🐷💥</span><span class="shoot-moon">🌕</span><span class="shoot-impact-ring"></span></div>
       <div class="shoot-effect shoot-effect-v2">
         <span class="zero">本人：ババブタ失点 0</span>
         <span class="zero">本人：マッド失点 0</span>
         <span class="damage">他全員：-10点</span>
       </div>
       <div class="shoot-hype-copy">危険札が、逆転コンボに変わった！</div>
-      <div class="shoot-hype-copy">各プレイヤー1ゲーム1回限り</div>
+      <div class="shoot-hype-copy shoot-limit-copy">各プレイヤー1ゲーム1回限り</div>
       <div class="shoot-confetti" aria-hidden="true">
-        <i>🐷</i><i>🌕</i><i>✨</i><i>🃏</i><i>泥11</i><i>💥</i><i>-10</i><i>0点</i>
+        <i>🐷</i><i>🌕</i><i>✨</i><i>🃏</i><i>💧11</i><i>💥</i><i>-10</i><i>0点</i>
       </div>
     </div>
   `;
+  effectVibrate([28,42,28,42,96]);
   window.clearTimeout(window.__shootPigOverlayTimer);
   window.__shootPigOverlayTimer = window.setTimeout(()=>{
     if(root.dataset.active === '1'){
@@ -5571,29 +7206,100 @@ function renderShootPigOverlay(){
         root.classList.remove('fade-out');
       }, 760);
     }
-  }, 7600);
+  }, 7200);
 }
 
+
+function currentActionGuide(){
+  if(!state) return {icon:'…',title:'接続を待っています',detail:'',tone:'waiting'};
+  const mine=me();
+  const pp=state.pendingPick;
+  if(state.phase==='passing'){
+    const done=(state.passDone||[]).includes(state.yourIndex);
+    const count=passSelectedIds.filter(id=>(mine?.hand||[]).some(c=>c.id===id)).length;
+    return done
+      ? {icon:'✓',title:'3枚パス確定済み',detail:'ほかのプレイヤーを待っています',tone:'waiting'}
+      : {icon:'↗',title:'渡すカードを3枚選ぶ',detail:`選択 ${count}/3 · ババブタは選べません`,tone:'action'};
+  }
+  if(state.phase==='initialPair'){
+    const done=(state.initialPairDone||[]).includes(state.yourIndex);
+    return done
+      ? {icon:'✓',title:'開始時ペア設定済み',detail:'ほかのプレイヤーを待っています',tone:'waiting'}
+      : {icon:'🧹',title:'同じ数字のペアを選ぶ',detail:'捨てない場合はスキップ',tone:'action'};
+  }
+  if(state.phase==='roundEnd'){
+    const autoAt=state.roundEndClientAutoContinueAt || state.roundEndAutoContinueAt;
+    const seconds=autoAt ? Math.max(0,Math.ceil((autoAt-Date.now())/1000)) : 45;
+    return {icon:'🏁',title:'ラウンド結果を確認',detail:`OKで次へ · ${seconds}秒後に自動進行`,tone:'result'};
+  }
+  if(state.phase==='finished') return {icon:'🏆',title:'最終結果',detail:'順位と得点内訳を確認できます',tone:'result'};
+  if(pp){
+    const winner=state.players?.[pp.winnerPid];
+    const weakest=state.players?.[pp.weakestPid];
+    if(pp.targetSelectionRequired && !pp.targetSelectionDone){
+      if(state.yourIndex===pp.weakestPid){
+        const need=Math.min(Number(pp.targetCount||0),(mine?.hand||[]).length);
+        return {icon:'🎯',title:`ピック候補を${need}枚選ぶ`,detail:`選択 ${pickTargetSelectedIds.length}/${need} · 選んだら確定`,tone:'action'};
+      }
+      return {icon:'🎯',title:`${weakest?.name||'最弱'}が候補を選択中`,detail:'決まると勝者が1枚ピックします',tone:'waiting'};
+    }
+    if(pp.result) return {icon:pp.result.drawn?.joker?'🃏':'✓',title:'ピック結果を確認',detail:pp.result.text||'',tone:pp.result.drawn?.joker?'danger':'result'};
+    if(pp.pairChoice){
+      return state.yourIndex===pp.winnerPid
+        ? {icon:'✨',title:'ペアにするカードを選ぶ',detail:'同じ数字を捨てる／スキップ',tone:'action'}
+        : {icon:'✨',title:`${winner?.name||'勝者'}がペアを判断中`,detail:'選択を待っています',tone:'waiting'};
+    }
+    if(state.yourIndex===pp.winnerPid){
+      const ready=isPickReady(pp);
+      return ready
+        ? {icon:'🐽',title:'裏向きのカードを1枚選ぶ',detail:'どれを選んでも位置はランダムです',tone:'action'}
+        : {icon:'⏳',title:'ピック準備中',detail:`あと${pickRemainingSeconds(pp)}秒`,tone:'waiting'};
+    }
+    return {icon:'🐽',title:`${winner?.name||'勝者'}がピック中`,detail:'選択を待っています',tone:'waiting'};
+  }
+  if(state.trickReview){
+    const seconds=Math.max(0,Math.ceil((state.trickReview.until-Date.now())/1000));
+    return {icon:'👑',title:'トリック結果を確認',detail:`${seconds}秒後にピックへ`,tone:'result'};
+  }
+  if(state.phase==='playing' && state.isYourTurn){
+    const selected=(mine?.hand||[]).find(c=>c.id===selectedPlayCardId);
+    return selected
+      ? {icon:'↑',title:`${playCardChoiceLabel(selected)}を選択中`,detail:'同じカードをもう一度タップして出す',tone:'action'}
+      : {icon:'🃏',title:'あなたの手番',detail:'光っているカードから1枚選ぶ',tone:'action'};
+  }
+  if(state.phase==='playing' && Number.isInteger(state.current)){
+    const current=state.players?.[state.current];
+    if(current && !current.cpu && current.connected===false){
+      const grace=Number(state.disconnectedActionGraceMs||45000);
+      const seconds=Math.max(0,Math.ceil((grace-Number(current.disconnectedForMs||0))/1000));
+      return {icon:'↻',title:`${current.name}の復帰待ち`,detail:`復帰しない場合は約${seconds}秒後に自動で合法手を出します`,tone:'warning'};
+    }
+    return {icon:'•',title:`${current?.name||'相手'}の手番`,detail:'場のカードとリードを確認',tone:'waiting'};
+  }
+  return {icon:'…',title:'進行を確認しています',detail:'状態は自動で同期されます',tone:'waiting'};
+}
 
 function renderRoundStatus(){
   const el=$('roundStatus');
   if(!el || !state){ return; }
-  const label = state.phase==='passing' ? '開始時3枚パス'
-    : state.phase==='initialPair' ? '開始時ペア捨て'
-    : state.phase==='roundEnd' ? `第${state.round}/${state.totalRounds || 3}R 結果確認`
-    : state.phase==='finished' ? 'ゲーム終了'
-    : state.round ? `第${state.round}/${state.totalRounds || 3}R` : '開始前';
+  const label = state.phase==='finished' ? '終了' : state.round ? `${state.round}/${state.totalRounds || 3}R` : '開始前';
+  const guide=currentActionGuide();
 
   // 常時表示するチップを必要最小限に整理。OFF系の情報は原則出さない。
   const chips = compactOptionChips();
 
   const start = state.roundStart ? `<div class="round-start"><div class="round-title">第${state.roundStart.round}R開始！</div><div>${esc(state.roundStart.text)}</div></div>` : '';
-  const html = `<div class="round-big">${esc(label)}</div><div class="setting-chips compact">${chips.map(c=>`<span>${esc(c)}</span>`).join('')}</div>${start}`;
-  const key = `${label}|${chips.join(',')}|${state.roundStart?.round||''}|${state.roundStart?.text||''}|${state.roundStart?.expiresAt||''}`;
+  const html = `<div class="round-big"><small>ROUND</small><b>${esc(label)}</b></div><div class="action-guide tone-${escAttr(guide.tone)}"><span class="action-guide-icon" aria-hidden="true">${esc(guide.icon)}</span><span class="action-guide-copy"><b>${esc(guide.title)}</b><small>${esc(guide.detail)}</small></span></div><div class="setting-chips compact" aria-label="選択ルール">${chips.map(c=>`<span>${esc(c)}</span>`).join('')}</div>${start}`;
+  const key = `${label}|${guide.icon}|${guide.title}|${guide.detail}|${guide.tone}|${chips.join(',')}|${state.roundStart?.round||''}|${state.roundStart?.text||''}|${state.roundStart?.expiresAt||''}`;
   if(key === __lastRoundStatusKey) return;
   __lastRoundStatusKey = key;
   el.innerHTML = html;
 }
+
+// サーバー状態を変えず、結果待ち・復帰待ち・ピック準備の残り秒だけを滑らかに更新する。
+setInterval(()=>{
+  if(state && state.phase!=='lobby') renderRoundStatus();
+}, 1000);
 
 
 
@@ -5638,10 +7344,10 @@ function renderRoundModal(){
       ${sum.shootPigResult ? `<div class="round-reason shoot-pig-banner"><div class="shoot-mini-title">🐷🌕 シュート・ザ・ピッグ！</div><div><b>${esc(sum.shootPigResult.shooterName)}</b> が手札の2枚で各自1回の逆転コンボ！ 本人のババブタ/マッド失点0、他全員に-10点。</div></div>` : ''}
       <div class="round-reason">${esc(sum.reasonText)}</div>
       <div class="round-grid">${rows}</div>
+      <p class="small round-auto-note" style="text-align:center;margin-top:8px">誰かがOKを押すと全員が次へ進みます。操作がなくても45秒後に自動で進行します。</p>
       <div class="round-actions">
-        <button type="button" class="btn" onclick="this.disabled=true; this.textContent='次ラウンド準備中…'; continueRound()">OK：次のラウンドへ進む</button>
+        <button type="button" class="btn" data-continue-round>OK：次のラウンドへ進む</button>
       </div>
-      <p class="small" style="text-align:center;margin-top:8px">この画面は各ラウンド終了時に表示されます。誰かがOKを押すと全員が次のラウンドへ進みます。</p>
     </div>
   </div>`;
   const key = JSON.stringify({
@@ -5768,6 +7474,7 @@ function updatePassSelectionUI(){
 
   const submit = document.querySelector('[data-pass-submit]');
   if(submit) submit.disabled = count !== 3;
+  renderRoundStatus();
 }
 
 function updateInitialPairSelectionUI(){
@@ -5786,6 +7493,7 @@ function updateInitialPairSelectionUI(){
     btn.classList.toggle('initial-candidate', isCandidate);
     btn.classList.toggle('initial-dim', isDim);
   });
+  renderRoundStatus();
 }
 
 function updatePickTargetSelectionUI(){
@@ -5807,6 +7515,7 @@ function updatePickTargetSelectionUI(){
 
   const submit = document.querySelector('[data-pick-target-submit]');
   if(submit) submit.disabled = count !== need;
+  renderRoundStatus();
 }
 
 function updatePickScreenStatus(pp){
@@ -5825,8 +7534,9 @@ function updatePickScreenStatus(pp){
     }
   }
   if(ready !== __lastPickReady){
+    const committing=!!document.querySelector('#table .pick-card.is-picking');
     document.querySelectorAll('#table .pick-card').forEach(btn=>{
-      if(ready) btn.removeAttribute('disabled');
+      if(ready && !committing) btn.removeAttribute('disabled');
       else btn.setAttribute('disabled','disabled');
     });
     __lastPickReady = ready;
@@ -5839,6 +7549,7 @@ function renderTable(){
   const pp = state.pendingPick;
   $('gameScreen')?.classList.toggle('is-pick-mode', !!pp);
   if(pp){
+    __lastTrickMotionIds=[];
     __lastTableRenderKey='__pick__';
     const w=state.players[pp.winnerPid], l=state.players[pp.weakestPid];
     const ready=isPickReady(pp);
@@ -5870,7 +7581,7 @@ function renderTable(){
         pickTargetSelectedIds = pickTargetSelectedIds.filter(id=>hand.some(c=>c.id===id));
         const count = pickTargetSelectedIds.length;
         html += `<div class="pick-status" data-pick-status="1">あなたがピック候補を選びます。<b id="pickTargetCountText">${count}/${need}</b>枚</div>`;
-        html += `<div class="pick-target-panel"><div class="pick-target-cards">`;
+        html += `<div class="pick-target-panel"><div class="pick-target-cards" data-card-count="${hand.length}">`;
         const targetVisualHand = stableShuffleIdsForPickTarget(hand, mode);
         for(const c of targetVisualHand){
           const selected = pickTargetSelectedIds.includes(c.id);
@@ -5886,9 +7597,9 @@ function renderTable(){
       html += `<div class="pick-status ${isBabaReveal?'baba-result-status':''}" data-pick-status="1">${esc(pp.result.text)}</div><div class="pick-result ${isBabaReveal?'baba-result-panel':''}"><span>${isBabaReveal?'公開ピック！ババブタ':'引いたカード'}</span>${cardHTML(pp.result.drawn,true)}</div>`;
     } else if(pp.pairChoice){
       const pc = pp.pairChoice;
-      html += `<div class="pick-status" data-pick-status="1">引いたカード：${cardHTML(pc.drawn,true)}<br>ペアにするか、スキップできます。</div>`;
+      html += `<div class="pick-status" data-pick-status="1">引いたカードと同じ数字を選ぶか、スキップできます。</div><div class="pick-drawn-card">${cardHTML(pc.drawn,true)}</div>`;
       if(state.yourIndex===pp.winnerPid && Array.isArray(pc.candidates)){
-        html += `<div class="pair-choice"><h4>ペアにするカードを選択</h4><div class="pair-cards">`;
+        html += `<div class="pair-choice"><h4>ペアにするカードを選択</h4><div class="pair-cards" data-card-count="${pc.candidates.length}">`;
         for(const c of pc.candidates){
           html += `<button type="button" class="pair-card-btn" data-pair-card-id="${escAttr(c.id)}">${cardHTML(c,true)}<div class="small">これと捨てる</div></button>`;
         }
@@ -5899,14 +7610,14 @@ function renderTable(){
       }
     } else if(state.yourIndex===pp.winnerPid){
       const cnt = pp.targetCandidateCount || l.handCount;
-      html += `<div class="pick-status" data-pick-status="1">${ready?'1枚選んでピック！':`確認中…あと${waitSec}秒`}</div><div class="pick-hand">`;
+      html += `<div class="pick-status" data-pick-status="1">${ready?'1枚選んでピック！':`確認中…あと${waitSec}秒`}</div><div class="pick-hand" data-card-count="${cnt}">`;
       for(let i=0;i<cnt;i++) html += `<button type="button" class="pick-card" ${ready?'':'disabled'} data-pick-index="${i}"><div class="playing-card back"></div></button>`;
       html += `</div>`;
     } else {
       const cnt = pp.targetCandidateCount || l.handCount;
       const winDisconnected = !w.cpu && w.connected === false;
       const waitText = winDisconnected ? `${esc(w.name)} が切断中です。自動復旧を待っています。` : (ready?`${esc(w.name)} が選択中です。`:`確認中…あと${waitSec}秒`);
-      html += `<div class="pick-status" data-pick-status="1">${waitText}</div>${winDisconnected ? '<div class="small center-note">しばらく戻らない場合はランダムに1枚ピックして進行します。</div>' : ''}<div class="pick-hand">`;
+      html += `<div class="pick-status" data-pick-status="1">${waitText}</div>${winDisconnected ? '<div class="small center-note">しばらく戻らない場合はランダムに1枚ピックして進行します。</div>' : ''}<div class="pick-hand" data-card-count="${cnt}">`;
       for(let i=0;i<cnt;i++) html += `<div class="playing-card back"></div>`;
       html += `</div>`;
     }
@@ -5955,20 +7666,27 @@ function renderTable(){
   }).join('');
   const base = Number.isInteger(state.yourIndex) && state.yourIndex >= 0 ? state.yourIndex : 0;
   const slotByDelta = ['bottom','left','top','right'];
+  const currentTrickMotionIds=(state.trick||[]).map(t=>t.card?.id).filter(Boolean);
+  const previousTrickMotionIds=new Set(__lastTrickMotionIds);
+  // 途中参加・復帰時に場の全カードが一斉に飛び込む誤表現を避ける。
+  // 通常の1枚目、または直前状態を把握済みの時だけ新しいカードを動かす。
+  const canAnimateNewTrickCard=__lastTrickMotionIds.length>0 || currentTrickMotionIds.length===1;
   const slots = order.map(pid=>{
     const x=trickMap.get(pid);
     const delta = (pid - base + 4) % 4;
     const position = slotByDelta[delta];
     const cls = `${lt && lt.winnerPid===pid ? ' win' : ''}${lt && lt.weakestPid===pid ? ' weak' : ''}${state.current===pid&&!state.pendingPick ? ' current' : ''}`;
     const label = x ? `${orderBadge(x.order)} ${playerName(pid)}` : playerName(pid);
+    const isNew=!!(x?.card?.id && canAnimateNewTrickCard && !previousTrickMotionIds.has(x.card.id));
     return `<div class="trick-slot slot-${position}${cls}">
-      ${x ? cardHTML(x.card) : '<div class="trick-slot-empty" aria-hidden="true"></div>'}
+      ${x ? `<div class="trick-card-motion motion-${position}${isNew?' is-new':''}" data-trick-card-id="${escAttr(x.card.id)}">${cardHTML(x.card)}</div>` : '<div class="trick-slot-empty" aria-hidden="true"></div>'}
       <div class="trick-slot-label">${esc(label)}</div>
     </div>`;
   }).join('');
   const centerLead = state.leadSuit ? `リード ${suitShortDisplay(state.leadSuit)}` : 'リード待ち';
   const centerTurn = state.current!=null&&!state.pendingPick ? playerName(state.current) : '結果確認中';
-  $('table').innerHTML=`<div class="trick-board">${reviewBanner}<div class="play-trail">${trail}</div>${slots}<div class="trick-center"><div><span class="clockwise">↻</span><b>${esc(centerLead)}</b><span>次：${esc(centerTurn)}</span></div></div></div>`;
+  $('table').innerHTML=`<div class="trick-board${review?' reviewing':''}">${reviewBanner}<div class="play-trail">${trail}</div>${slots}<div class="trick-center"><div><span class="clockwise">↻</span><b>${esc(centerLead)}</b><span>次：${esc(centerTurn)}</span></div></div></div>`;
+  __lastTrickMotionIds=currentTrickMotionIds;
 }
 
 
@@ -5979,8 +7697,22 @@ function playable(card){
   return Array.isArray(state.playableCardIds) && state.playableCardIds.includes(card.id);
 }
 
+function fanCardStyle(index, count){
+  const safeCount=Math.max(1, Number(count || 1));
+  const progress=safeCount===1 ? .5 : index/(safeCount-1);
+  const t=(progress-.5)*2;
+  const compactPortrait=window.matchMedia?.('(max-width:430px) and (orientation:portrait)')?.matches;
+  const span=safeCount<=1 ? 0 : safeCount===2 ? 44 : safeCount===3 ? 56 : safeCount===4 ? 66 : compactPortrait ? 77 : 80;
+  const left=50 + (progress-.5)*span;
+  const angle=t*(compactPortrait ? 7.5 : 11.5);
+  const curve=Math.pow(Math.abs(t), 1.45)*10;
+  return `--fan-left:${left.toFixed(3)}%;--fan-angle:${angle.toFixed(3)}deg;--fan-y:${curve.toFixed(3)}px;--fan-z:${index+1};--fan-delay:${Math.min(index*28,280)}ms`;
+}
+
 function renderHand(){
   const hand=me()?.hand || [];
+  const previousHandIds=new Set(__lastHandCardIds);
+  const firstVisibleHand=hand.length>0 && __lastHandCardIds.length===0;
   const playableSet = new Set(state?.playableCardIds || []);
   const initialSet = new Set(state?.initialPairCandidateIds || []);
   const passableSet = new Set(state?.passableCardIds || []);
@@ -5996,6 +7728,9 @@ function renderHand(){
     (state?.playableCardIds || []).join(','),
     (state?.initialPairCandidateIds || []).join(','),
     (state?.passableCardIds || []).join(','),
+    selectedPlayCardId || '',
+    playCommitPending ? 'commit' : '',
+    handExpanded ? 'expanded' : 'fan',
     hand.map(c=>c.id).join(',')
   ].join('|');
   if(handKey === __lastHandRenderKey) return;
@@ -6003,10 +7738,24 @@ function renderHand(){
 
   const handEl = $('hand');
   const selectionMode = state?.phase === 'passing' || state?.phase === 'initialPair';
+  if(selectionMode || hand.length===0) handExpanded=false;
+  const expandedMode = !selectionMode && hand.length > 0 && handExpanded;
+  const fanMode = !selectionMode && hand.length > 0 && !expandedMode;
   handEl?.classList.toggle('selection-mode', selectionMode);
+  handEl?.classList.toggle('fan-hand', fanMode);
+  handEl?.classList.toggle('expanded-hand', expandedMode);
   handEl?.classList.toggle('actionable', !!state?.isYourTurn);
+  const handDock=document.querySelector('.hand-dock');
+  handDock?.classList.toggle('fan-active', fanMode);
+  handDock?.classList.toggle('expanded-active', expandedMode);
   const handCountLabel = $('handCountLabel');
   if(handCountLabel) handCountLabel.textContent = `${hand.length}枚`;
+  const viewToggle=$('handViewToggle');
+  if(viewToggle){
+    viewToggle.hidden=selectionMode || hand.length===0;
+    viewToggle.setAttribute('aria-pressed',expandedMode?'true':'false');
+    viewToggle.innerHTML=expandedMode?'<span aria-hidden="true">⌁</span> 扇形に戻す':'<span aria-hidden="true">↔</span> 広げる';
+  }
 
   let note = '';
 
@@ -6027,6 +7776,9 @@ function renderHand(){
       <h3>🧹 開始時ペア捨て</h3>
       ${done ? `<div class="small">完了/スキップ済み。待機中です。</div>` : `<div class="small">同じ数字ペアを任意で捨てられます。</div><div class="initial-pair-actions"><button type="button" class="btn secondary" data-initial-skip="1">スキップ</button></div>`}
     </div>`;
+  } else if(state?.phase === 'playing' && state?.isYourTurn && selectedPlayCardId && hand.some(c=>c.id===selectedPlayCardId)){
+    const selectedPlay=hand.find(c=>c.id===selectedPlayCardId);
+    note = `<div class="notice info selected-card-notice"><div class="notice-title">${esc(playCardChoiceLabel(selectedPlay))} を選択中</div><div class="notice-body">同じカードをもう一度タップすると出します。</div></div>`;
   } else if(state?.phase === 'playing' && state?.isYourTurn && playableSet.size === 0){
     note = `<div class="notice info"><div class="notice-title">出せるカードなし</div><div class="notice-body">終了条件の処理を待っています。</div></div>`;
   } else if(state?.phase === 'playing' && state?.isYourTurn){
@@ -6049,7 +7801,7 @@ function renderHand(){
   const selectedCard = selected ? hand.find(c=>c.id===selected) : null;
   const passDone = Array.isArray(state?.passDone) && state.passDone.includes(state.yourIndex);
 
-  const cards = hand.map(c=>{
+  const cards = hand.map((c,index)=>{
     if(state?.phase === 'passing'){
       const passable = !passDone && passableSet.has(c.id);
       const selectedPass = passSelectedIds.includes(c.id);
@@ -6064,33 +7816,44 @@ function renderHand(){
       return `<button type="button" class="hand-card ${selectable?'initial-selectable':'un'} ${selectedCls} ${candidate?'initial-candidate':''} ${dim}" ${selectable?'':'disabled'} data-initial-card-id="${escAttr(c.id)}">${cardHTML(c, selectable)}</button>`;
     }
     const can = playableSet.has(c.id);
-    return `<button type="button" class="hand-card ${can?'':'un'}" ${can?'': 'disabled'} data-card-id="${escAttr(c.id)}">${cardHTML(c, can)}</button>`;
+    const selectedPlay=selectedPlayCardId===c.id;
+    const committing=selectedPlay && playCommitPending;
+    const fanEnter=firstVisibleHand || !previousHandIds.has(c.id);
+    return `<button type="button" class="hand-card ${can?'':'un'} ${selectedPlay?'is-selected':''} ${committing?'is-committing':''} ${fanEnter?'fan-enter':''}" style="${fanCardStyle(index,hand.length)}" ${can?'': 'disabled'} data-card-id="${escAttr(c.id)}" aria-label="${escAttr(playCardChoiceLabel(c))}${can?'を選ぶ':'・現在は出せません'}" aria-pressed="${selectedPlay?'true':'false'}">${cardHTML(c, can)}</button>`;
   }).join('') || '<p class="small">手札はまだありません。</p>';
 
   $('hand').innerHTML = cards;
+  __lastHandCardIds=hand.map(c=>c.id);
 }
 
 
 function requestPlay(id){
   if(!ws || ws.readyState!==1){
-    $('message').textContent = '通信が切れています。ページを再読み込みして再参加してください。';
+    $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
+    playCommitPending=false;
+    updatePlaySelectionUI();
+    scheduleReconnect(true);
     return;
   }
-  send({type:'play', cardId:String(id)});
+  if(!send({type:'play', cardId:String(id)})){
+    playCommitPending=false;
+    updatePlaySelectionUI();
+  }
 }
 window.play = requestPlay;
 function requestPick(i){
   if(!ws || ws.readyState!==1){
-    $('message').textContent = '通信が切れています。ページを再読み込みして再参加してください。';
-    return;
+    $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
+    scheduleReconnect(true);
+    return false;
   }
-  send({type:'pick', index:Number(i)});
+  return send({type:'pick', index:Number(i)});
 }
 window.pick = requestPick;
 
 function requestPickTargets(cardIds){
   if(!ws || ws.readyState!==1){
-    $('message').textContent = '通信が切れています。ページを再読み込みして再参加してください。';
+    $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
     return;
   }
   send({type:'pickTargets', cardIds:(cardIds||[]).map(String)});
@@ -6099,17 +7862,18 @@ function requestPickTargets(cardIds){
 
 function requestPairChoice(cardId, skip){
   if(!ws || ws.readyState!==1){
-    $('message').textContent = '通信が切れています。ページを再読み込みして再参加してください。';
-    return;
+    $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
+    scheduleReconnect(true);
+    return false;
   }
-  send({type:'pairChoice', cardId:cardId ? String(cardId) : null, skip:!!skip});
+  return send({type:'pairChoice', cardId:cardId ? String(cardId) : null, skip:!!skip});
 }
 
 
 
 function requestPassThree(cardIds){
   if(!ws || ws.readyState!==1){
-    $('message').textContent = '通信が切れています。ページを再読み込みして再参加してください。';
+    $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
     return;
   }
   if(!Array.isArray(cardIds) || cardIds.length !== 3){
@@ -6122,14 +7886,14 @@ function requestPassThree(cardIds){
 
 function requestInitialPairDiscard(cardAId, cardBId){
   if(!ws || ws.readyState!==1){
-    $('message').textContent = '通信が切れています。ページを再読み込みして再参加してください。';
+    $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
     return;
   }
   send({type:'initialPairDiscard', cardAId:String(cardAId), cardBId:String(cardBId)});
 }
 function requestSkipInitialPairs(){
   if(!ws || ws.readyState!==1){
-    $('message').textContent = '通信が切れています。ページを再読み込みして再参加してください。';
+    $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
     return;
   }
   send({type:'skipInitialPairs'});
@@ -6137,12 +7901,24 @@ function requestSkipInitialPairs(){
 
 function continueRound(){
   if(!ws || ws.readyState!==1){
-    $('message').textContent = '通信が切れています。ページを再読み込みして再参加してください。';
-    return;
+    $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
+    scheduleReconnect(true);
+    return false;
   }
-  send({type:'continueRound'});
+  return send({type:'continueRound'});
 }
 window.continueRound = continueRound;
+document.addEventListener('click', ev=>{
+  const btn=ev.target?.closest?.('[data-continue-round]');
+  if(!btn || btn.disabled) return;
+  ev.preventDefault();
+  btn.disabled=true;
+  btn.textContent='次ラウンド準備中…';
+  if(!continueRound()){
+    btn.disabled=false;
+    btn.textContent='OK：次のラウンドへ進む';
+  }
+});
 
 function renderPick(){
   // ピック中は「場のカード」エリア自体を専用レイアウトへ切り替えるため、
@@ -6179,7 +7955,7 @@ function renderScore(){
   function dangerBadges(p){
     const badges=[];
     if(p.final.joker) badges.push('<span class="danger-badge joker">🃏 ババブタ</span>');
-    if(state.madPigEnabled !== false && p.final.madPig) badges.push(`<span class="danger-badge">泥11 マッド・ピッグ ×${p.final.madPig}${p.final.shootPigMadPigWaived?'（失点0）':''}</span>`);
+    if(state.madPigEnabled !== false && p.final.madPig) badges.push(`<span class="danger-badge">💧11 マッド・ピッグ ×${p.final.madPig}${p.final.shootPigMadPigWaived?'（失点0）':''}</span>`);
     if(p.final.shootPigActivatedRounds?.length) badges.push(`<span class="danger-badge joker">🐷🌕 シュート・ザ・ピッグ</span>`);
     if(p.final.shootPigPenalty) badges.push(`<span class="danger-badge">🌕 シュート失点 -${p.final.shootPigPenalty}</span>`);
     if(!badges.length) badges.push('<span class="danger-badge">✨ 危険カードなし</span>');
@@ -6228,7 +8004,7 @@ function renderScore(){
       </div>
       <div class="podium">${podium}</div>
       ${finalReason}<div class="final-comment">${comment}</div>
-      <h3 style="margin:14px 0 6px;color:#b64040">得点内訳</h3>${state.madPigEnabled !== false ? `<div class="final-comment">マッド・ピッグ（泥11）は、数字分以外では手札・山とも固有-13点で、通常カード失点とは重複しません。数字分失点では手札なら-40点、山なら+1点後に-40点です。</div>` : `<div class="final-comment">この部屋ではマッド・ピッグなし。泥11は通常カードとして扱います。</div>`}<div class="final-comment">シュートはババブタとマッドの両方が手札にある時だけ発動し、各プレイヤー1回までです。山のマッドは条件に含みません。</div><div class="final-comment">ババブタ失点は ${state.jokerPenaltyTiming==='gameEnd'?'ゲームの最後のみ':'ラウンド毎'} 適用です。</div>
+      <h3 style="margin:14px 0 6px;color:#b64040">得点内訳</h3>${state.madPigEnabled !== false ? `<div class="final-comment">マッド・ピッグ（💧11）は、数字分以外では手札・山とも固有-13点で、通常カード失点とは重複しません。数字分失点では手札なら-40点、山なら+1点後に-40点です。</div>` : `<div class="final-comment">この部屋ではマッド・ピッグなし。💧11は通常カードとして扱います。</div>`}<div class="final-comment">シュートはババブタとマッドの両方が手札にある時だけ発動し、各プレイヤー1回までです。山のマッドは条件に含みません。</div><div class="final-comment">ババブタ失点は ${state.jokerPenaltyTiming==='gameEnd'?'ゲームの最後のみ':'ラウンド毎'} 適用です。</div>
       <div class="final-breakdown">${breakdown}</div>
       <div class="score-compact">
         <table class="score">
@@ -6237,8 +8013,8 @@ function renderScore(){
         </table>
       </div>
       <div class="final-actions">
-        <button type="button" class="btn secondary" onclick="window.scrollTo({top:0,behavior:'smooth'})">上に戻る</button>
-        <button type="button" class="btn" onclick="location.reload()">新しい部屋で遊ぶ</button>
+        <button type="button" class="btn secondary" data-scroll-top>上に戻る</button>
+        <button type="button" class="btn" data-new-game>新しい部屋で遊ぶ</button>
       </div>
     </div>
   `;
@@ -6247,16 +8023,27 @@ function renderScore(){
   __lastScoreRenderKey = key;
   $('score').innerHTML = scoreHtml;
 }
+
+document.addEventListener('click', ev=>{
+  if(ev.target?.closest?.('[data-scroll-top]')){
+    ev.preventDefault();
+    window.scrollTo({top:0,behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth'});
+  }
+  if(ev.target?.closest?.('[data-new-game]')){
+    ev.preventDefault();
+    location.reload();
+  }
+});
 function cardHTML(c, playable=false){
   if(!c) return '';
-  if(c.joker) return `<div class="playing-card joker ${playable?'playable':''}"><div class="rank">JOKER</div><div class="art">🤡🐷</div><div class="suit">ババブタ</div></div>`;
+  if(c.joker) return `<div class="playing-card joker ${playable?'playable':''}" aria-label="ババブタ"><div class="card-corner joker-corner"><div class="rank">J</div><div class="suit suit-icon">🃏</div></div><div class="art">🤡🐷</div><div class="suit suit-name">ババブタ</div></div>`;
   const mad = state?.madPigEnabled !== false && isMadPig(c);
   const madPenaltyChip = state?.penaltyMode === 'faceValue' ? '失点 -40' : '失点 -13';
   const suit=suitUi(c.suit);
   return `<div class="playing-card ${suit.className} ${mad?'madpig':''} ${playable?'playable':''}" aria-label="${escAttr(`${c.rank} ${suit.name}${mad?' マッド・ピッグ':''}`)}">
     ${mad?'<div class="madpig-banner">DANGER</div>':''}
-    <div><div class="rank">${c.rank}</div><div class="suit suit-icon">${suit.icon}</div></div>
-    <div class="art">${mad?'☠️🐷泥':suit.art}</div>
+    <div class="card-corner"><div class="rank">${c.rank}</div><div class="suit suit-icon">${suit.icon}</div></div>
+    <div class="art">${mad?'☠️🐷💧':suit.art}</div>
     <div class="suit suit-name">${mad?'マッド':suit.shortName}</div>
     ${mad?`<div class="danger-chip">${madPenaltyChip}</div>`:''}
   </div>`;
@@ -6264,7 +8051,18 @@ function cardHTML(c, playable=false){
 function esc(s){ return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 function escAttr(s){ return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-window.addEventListener('load', ()=>{ applyDeviceUiMode(); const data=loadReconnectInfo(); if(data){ $('code').value=data.code; if(data.name) $('name').value=data.name; } updateReconnectButton(); });
+window.addEventListener('load', ()=>{
+  applyDeviceUiMode();
+  const data=loadReconnectInfo();
+  if(data){
+    $('code').value=data.code;
+    if(data.name) $('name').value=data.name;
+    resumeToken=data.resumeToken || '';
+  }
+  updateReconnectButton();
+  // リロード・Safariのタブ破棄・一時的な圏外から戻った時も、操作なしで同じ席へ戻す。
+  if(data?.active) setTimeout(()=>scheduleReconnect(true), 220);
+});
 </script>
 
 <div id="ruleHelpModal" class="rule-help-modal" aria-hidden="true">
@@ -6277,7 +8075,8 @@ window.addEventListener('load', ()=>{ applyDeviceUiMode(); const data=loadReconn
   </div>
 </div>
 
-<div id="shootPigOverlay" class="shoot-pig-overlay" data-active="0"></div>
-<div id="babaDrawOverlay" class="baba-draw-overlay" data-active="0"></div>
+<div id="momentOverlay" class="moment-overlay" data-active="0" role="status" aria-live="polite"></div>
+<div id="shootPigOverlay" class="shoot-pig-overlay" data-active="0" role="status" aria-live="polite"></div>
+<div id="babaDrawOverlay" class="baba-draw-overlay" data-active="0" role="status" aria-live="polite"></div>
 </body>
 </html>

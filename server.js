@@ -41,8 +41,32 @@ const server = http.createServer((req, res) => {
   });
 });
 
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, maxPayload:64 * 1024 });
 const rooms = new Map();
+
+// Render を含む実運用で、端末のスリープや回線切替により TCP 接続だけが
+// 半開きで残ることがある。サーバー側からも生存確認し、切断を確実に検知する。
+function positiveDuration(value, fallback, minimum=100){
+  const parsed=Number(value);
+  return Number.isFinite(parsed) && parsed >= minimum ? Math.floor(parsed) : fallback;
+}
+const WS_HEARTBEAT_INTERVAL_MS = positiveDuration(process.env.WS_HEARTBEAT_INTERVAL_MS, 15 * 1000);
+const DISCONNECTED_ACTION_GRACE_MS = positiveDuration(process.env.DISCONNECTED_ACTION_GRACE_MS, 45 * 1000);
+const ROUND_END_AUTO_CONTINUE_MS = positiveDuration(process.env.ROUND_END_AUTO_CONTINUE_MS, 45 * 1000);
+const ROOM_EMPTY_TTL_MS = positiveDuration(process.env.ROOM_EMPTY_TTL_MS, 10 * 60 * 1000);
+
+const wsHeartbeatTimer = setInterval(()=>{
+  for(const client of wss.clients){
+    if(client.isAlive === false){
+      try { client.terminate(); } catch(e) {}
+      continue;
+    }
+    client.isAlive = false;
+    try { client.ping(); } catch(e) {}
+  }
+}, WS_HEARTBEAT_INTERVAL_MS);
+wsHeartbeatTimer.unref?.();
+wss.on('close', ()=>clearInterval(wsHeartbeatTimer));
 
 // 進行停止監視。タイマーが不発になった場合でも、待機状態を定期的に拾って進める。
 setInterval(()=>{
@@ -56,14 +80,14 @@ const SUIT_DEFINITIONS = Object.freeze({
   apple:{id:'apple', name:'リンゴ', icon:'🍎', color:'red'},
   corn:{id:'corn', name:'トウモロコシ', icon:'🌽', color:'yellow'},
   cabbage:{id:'cabbage', name:'キャベツ', icon:'🥬', color:'green'},
-  mud:{id:'mud', name:'泥', icon:'泥', color:'gray'}
+  mud:{id:'mud', name:'泥', icon:'💧', color:'gray'}
 });
 const suits = ['apple','corn','cabbage','mud'];
 const MUD_SUIT = 'mud';
 function suitDefinition(suit){ return SUIT_DEFINITIONS[suit] || {id:String(suit || ''), name:String(suit || ''), icon:'?', color:'gray'}; }
 function suitName(suit){ return suitDefinition(suit).name; }
 function suitIcon(suit){ return suitDefinition(suit).icon; }
-function suitDisplay(suit){ const def=suitDefinition(suit); return `${def.icon} ${def.name}`; }
+function suitDisplay(suit){ const def=suitDefinition(suit); return def.id === MUD_SUIT ? def.icon : `${def.icon} ${def.name}`; }
 const ranks = ['1','2','3','4','5','6','7','8','9','10','11','12','13'];
 let deckSerial = 0; // 次ラウンド補充時もカードIDが重複しないようにする。
 const value = Object.fromEntries(ranks.map(r=>[r, Number(r)]));
@@ -74,6 +98,12 @@ function code(){
   return rooms.has(s) ? code() : s;
 }
 function uid(){ return crypto.randomBytes(8).toString('hex'); }
+function newResumeToken(){ return crypto.randomBytes(24).toString('hex'); }
+function resumeTokenMatches(expected, provided){
+  const a=Buffer.from(String(expected || ''), 'utf8');
+  const b=Buffer.from(String(provided || ''), 'utf8');
+  return a.length > 0 && a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function makeDeck(){
   let deck=[]; let id=0;
@@ -92,6 +122,49 @@ function cardFaceKey(card){
 
 function isMadPig(card){
   return !!card && !card.joker && card.suit===MUD_SUIT && card.rank==='11';
+}
+
+// 演出はクライアントだけの推測にせず、ゲーム状態と同じイベントIDを全員へ配る。
+// これにより再接続や定期再送があっても同じ演出を何度も再生しない。
+function registerMadPigEvent(room, ownerPid, card, source='pick'){
+  if(!room || room.madPigEnabled === false || !isMadPig(card)) return null;
+  const event={
+    id:`mad-${room.round || 1}-${ownerPid}-${uid()}`,
+    round:room.round || 1,
+    ownerPid,
+    ownerName:room.players?.[ownerPid]?.name || '',
+    card,
+    source:source === 'trick' ? 'trick' : 'pick',
+    expiresAt:Date.now()+4800
+  };
+  room.madPigEvent=event;
+  return event;
+}
+
+function registerPairCleanEvent(room, playerPid, cards, source='pick', revealCards=true){
+  if(!room || !Array.isArray(cards) || cards.length !== 2) return null;
+  const rank=String(cards[0]?.rank || cards[1]?.rank || '');
+  const event={
+    id:`pair-${room.round || 1}-${playerPid}-${uid()}`,
+    round:room.round || 1,
+    playerPid,
+    playerName:room.players?.[playerPid]?.name || '',
+    rank,
+    cards:revealCards ? cards : null,
+    // 非公開の開始時ペアでは、マッドを含むかどうかも追加情報になるため伏せる。
+    containsMadPig:revealCards && room.madPigEnabled !== false && cards.some(isMadPig),
+    source:source === 'initial' ? 'initial' : 'pick',
+    expiresAt:Date.now()+4200
+  };
+  room.pairCleanEvent=event;
+  return event;
+}
+
+function pickResultDisplayMs(room, result){
+  if(result?.drawn?.joker) return 5000;
+  if(result?.paired) return 3400;
+  if(room?.madPigEnabled !== false && isMadPig(result?.drawn)) return 4200;
+  return 2600;
 }
 
 function cloneCardWithFreshId(card){
@@ -581,9 +654,9 @@ function cpuStrategyLineFor(room, pid, type, ctx={}){
       `下家のデスロード、${target}さん方面に舗装します♡`
     ]);
     if(type==='mudPenalty') return sample([
-      `${target}さん、泥は重いですよ♡ ${card}で圧を撒きます♡`,
-      '泥の失点、誰かの心までずっしり沈め♡',
-      `${mode}なら灰色の泥札は重たい未来です♡`
+      `${target}さん、💧は重いですよ♡ ${card}で圧を撒きます♡`,
+      '💧の失点、誰かの心までずっしり沈め♡',
+      `${mode}なら灰色の💧札は重たい未来です♡`
     ]);
     if(type==='targetSelectSmart') return sample([
       `${target}さんに渡す候補、甘く見せて毒を混ぜます♡`,
@@ -630,9 +703,9 @@ function cpuStrategyLineFor(room, pid, type, ctx={}){
       `直感でいく！${target}さん方面に流れを変える！`
     ]);
     if(type==='mudPenalty') return sample([
-      `泥は重い！だからこそ今切る！${card}！`,
+      `💧は重い！だからこそ今切る！${card}！`,
       `${mode}でも私なら持ち上げられる！たぶん！`,
-      `${target}さん、泥札でも盛り上げ札にします！`
+      `${target}さん、💧札でも盛り上げ札にします！`
     ]);
     if(type==='targetSelectSmart') return sample([
       `${target}さんに候補2枚！私の直感で選ぶぞぉ〜✊🏻`,
@@ -678,9 +751,9 @@ function cpuStrategyLineFor(room, pid, type, ctx={}){
       `${target}さん方面へ負債を圧縮します。`
     ]);
     if(type==='mudPenalty') return sample([
-      `泥スートは失点が重いです。${card}を処理します。`,
-      `${mode}なので、泥リスクを優先管理します。`,
-      '灰色の泥札は管理コスト高めです。早めに処理します。'
+      `💧スートは失点が重いです。${card}を処理します。`,
+      `${mode}なので、💧リスクを優先管理します。`,
+      '灰色の💧札は管理コスト高めです。早めに処理します。'
     ]);
     if(type==='targetSelectSmart') return sample([
       `${target}さんへの候補2枚をリスク順に選定します。`,
@@ -857,7 +930,7 @@ function cpuLineFor(room, pid, type, ctx={}){
     if(type==='roundStart') return sample([
       round === (room.totalRounds || 3) ? '最終ラウンドです。累積リスクを確認し、勝ち筋へ集中します。' : `第${round}ラウンド開始。危険札と手札枚数を再点検します。`,
       `${target}さんの手番順も確認しました。計画を更新します。`,
-      ['mud6','mudSuit'].includes(normalizePenaltyMode(room.penaltyMode)) ? '泥スート管理を最優先タスクに設定します。' : '進行条件を確認。締切まで堅実に処理します。'
+      ['mud6','mudSuit'].includes(normalizePenaltyMode(room.penaltyMode)) ? '💧スート管理を最優先タスクに設定します。' : '進行条件を確認。締切まで堅実に処理します。'
     ]);
     if(type==='endgame') return sample([
       `残り${p.hand.length}枚。終了条件までの工程を確認しました。`,
@@ -1044,6 +1117,7 @@ function publicState(room, viewerId){
     you: viewerId,
     yourIndex: viewerIndex,
     phase: room.phase,
+    disconnectedActionGraceMs: DISCONNECTED_ACTION_GRACE_MS,
     round: room.round,
     totalRounds: room.totalRounds || 3,
     madPigEnabled: room.madPigEnabled !== false,
@@ -1052,6 +1126,8 @@ function publicState(room, viewerId){
     shootThePigEnabled: shootThePigEnabled(room),
     shootThePigPerPlayerLimit: 1,
     shootPigEvent: room.shootPigEvent && room.shootPigEvent.expiresAt > Date.now() ? room.shootPigEvent : null,
+    madPigEvent: room.madPigEvent && room.madPigEvent.expiresAt > Date.now() ? room.madPigEvent : null,
+    pairCleanEvent: room.pairCleanEvent && room.pairCleanEvent.expiresAt > Date.now() ? room.pairCleanEvent : null,
     initialPairDiscardEnabled: room.initialPairDiscardEnabled === true,
     passThreeEnabled: room.passThreeEnabled === true,
     penaltyMode: normalizePenaltyMode(room.penaltyMode),
@@ -1064,6 +1140,12 @@ function publicState(room, viewerId){
     initialPairCandidateIds: viewerIndex >= 0 && room.phase === 'initialPair' ? initialPairCandidateIds(room.players[viewerIndex]) : [],
     roundStart: room.roundStart && room.roundStart.expiresAt > Date.now() ? room.roundStart : null,
     roundEndSummary: room.roundEndSummary || null,
+    roundEndAutoContinueAt: room.phase === 'roundEnd' && room.roundEndSummary
+      ? Number(room.roundEndSummary.createdAt || Date.now()) + ROUND_END_AUTO_CONTINUE_MS
+      : null,
+    roundEndAutoContinueInMs: room.phase === 'roundEnd' && room.roundEndSummary
+      ? Math.max(0, Number(room.roundEndSummary.createdAt || Date.now()) + ROUND_END_AUTO_CONTINUE_MS - Date.now())
+      : null,
     roundEndDeferred: room.roundEndDeferred || null,
     lead: room.lead,
     current: room.current,
@@ -1093,11 +1175,12 @@ function publicState(room, viewerId){
       } : null
     } : null,
     players: room.players.map((p,i)=>({
-      id:p.id, name:p.name, seat:i, cpu: !!p.cpu, cpuKey: cpuCharacter(p)?.key || null, cpuStyle:cpuCharacter(p)?.style || null, cpuTitle:cpuCharacter(p)?.title || null, avatar: cpuAvatar(p), avatarImage: cpuCharacter(p)?.imagePath || null, connected: p.cpu || (p.ws && p.ws.readyState===WebSocket.OPEN),
+      id:p.id, name:p.name, seat:i, cpu: !!p.cpu, cpuKey: cpuCharacter(p)?.key || null, cpuStyle:cpuCharacter(p)?.style || null, cpuTitle:cpuCharacter(p)?.title || null, avatar: cpuAvatar(p), avatarImage: cpuCharacter(p)?.imagePath || null, connected: p.cpu || (p.ws && p.ws.readyState===WebSocket.OPEN), disconnectedAt:p.cpu ? null : (p.disconnectedAt || null), disconnectedForMs:!p.cpu && p.disconnectedAt ? Math.max(0,Date.now()-p.disconnectedAt) : 0,
       handCount:p.hand.length,
       hand: p.id===viewerId || room.phase==='finished' ? p.hand : null,
       scorePileCount:p.scorePile.length,
-      pairsCount:p.pairs.length,
+      // pairs 配列はカード2枚単位。UIにはカード枚数ではなく成立した組数を返す。
+      pairsCount:Math.floor(p.pairs.length/2),
       shootUsed:playerHasUsedShootThePig(p),
       out:p.out || false,
       final:p.final || null,
@@ -1359,25 +1442,55 @@ function isOpenWs(ws){
   return ws && ws.readyState === WebSocket.OPEN;
 }
 
-function findReconnectCandidate(room, playerId, name){
+function cancelRoomCleanup(room){
+  if(!room) return;
+  room.emptySince = null;
+  if(room.cleanupTimer){
+    clearTimeout(room.cleanupTimer);
+    room.cleanupTimer = null;
+  }
+}
+
+function scheduleRoomCleanup(room){
+  if(!room || room.cleanupTimer) return;
+  room.emptySince = Date.now();
+  const emptySince = room.emptySince;
+  room.cleanupTimer = setTimeout(()=>{
+    room.cleanupTimer = null;
+    const current = rooms.get(room.code);
+    if(!current || current !== room) return;
+    const stillEmpty = room.players.every(p=>p.cpu || !isOpenWs(p.ws));
+    if(stillEmpty && room.emptySince === emptySince) rooms.delete(room.code);
+  }, ROOM_EMPTY_TTL_MS);
+  room.cleanupTimer.unref?.();
+}
+
+function findReconnectCandidate(room, playerId, name, resumeToken){
   if(!room) return null;
   const clean = cleanName(name);
-  // 最優先：保存されたplayerIdで復帰。
+  // 最優先：保存されたplayerId + 端末専用トークンで同じ席へ復帰。
   let idx = room.players.findIndex(p=>!p.cpu && p.id === playerId);
-  if(idx >= 0) return {player:room.players[idx], idx, reason:'id'};
+  if(idx >= 0){
+    const player=room.players[idx];
+    // 旧形式の席にはトークンなし復帰を許可し、新形式では一致を必須にする。
+    if(!player.resumeToken || resumeTokenMatches(player.resumeToken, resumeToken)){
+      return {player, idx, reason:player.resumeToken ? 'token' : 'legacy-id'};
+    }
+    return null;
+  }
 
-  // 次点：同名で現在切断中のプレイヤーへ復帰。
-  idx = room.players.findIndex(p=>!p.cpu && p.name === clean && !isOpenWs(p.ws));
+  // 旧形式だけは同名かつ切断中の席へフォールバックする。
+  idx = room.players.findIndex(p=>!p.cpu && !p.resumeToken && p.name === clean && !isOpenWs(p.ws));
   if(idx >= 0) return {player:room.players[idx], idx, reason:'name'};
 
   return null;
 }
 
-function reconnectRoom(ws, c, playerId, name){
+function reconnectRoom(ws, c, playerId, name, resumeToken){
   c = String(c||'').toUpperCase().trim();
   const room = rooms.get(c);
   if(!room) return send(ws,'errorMsg',{message:'復帰する部屋が見つかりません。'});
-  const found = findReconnectCandidate(room, playerId, name);
+  const found = findReconnectCandidate(room, playerId, name, resumeToken);
   if(!found) return send(ws,'errorMsg',{message:'復帰できる席が見つかりません。同じ部屋コードと名前で入り直してください。'});
 
   const {player, idx} = found;
@@ -1385,10 +1498,12 @@ function reconnectRoom(ws, c, playerId, name){
     try { player.ws.close(4000, 'reconnected elsewhere'); } catch(e){}
   }
   player.ws = ws;
+  player.disconnectedAt = null;
+  cancelRoomCleanup(room);
   ws.roomCode = c;
   ws.playerId = player.id;
   log(room, `${player.name} が再接続しました。`);
-  send(ws,'reconnected',{code:c, playerId:player.id, name:player.name});
+  send(ws,'reconnected',{code:c, playerId:player.id, name:player.name, resumeToken:player.resumeToken || null});
   broadcast(room);
 }
 
@@ -1519,8 +1634,8 @@ function autoResolveCpuPickTargets(room, pp){
 function roomPenaltyLabel(room){
   const mode = normalizePenaltyMode(room.penaltyMode);
   if(mode === 'faceValue') return '数字分失点';
-  if(mode === 'mud6') return '泥-6/他-3';
-  if(mode === 'mudSuit') return '泥-3/他-1';
+  if(mode === 'mud6') return '💧-6/他-3';
+  if(mode === 'mudSuit') return '💧-3/他-1';
   return '1枚-3点';
 }
 
@@ -1539,28 +1654,27 @@ function roomOptionSummary(room){
 function createRoom(ws, name, totalRounds=3, madPigEnabled=true, jokerPenalty=-20, initialPairDiscardEnabled=false, passThreeEnabled=false, penaltyMode='mud6', pickTargetCount=2, jokerPenaltyTiming='perRound', shootThePigEnabled=true){
   const c = code();
   const id = uid();
-  const room = {code:c, hostId:id, players:[], phase:'lobby', round:1, totalRounds: normalizeRoundCount(totalRounds), madPigEnabled: normalizeMadPigEnabled(madPigEnabled), jokerPenalty: normalizeJokerPenalty(jokerPenalty), jokerPenaltyTiming: normalizeJokerPenaltyTiming(jokerPenaltyTiming), shootThePigEnabled: normalizeMadPigEnabled(madPigEnabled) && normalizeShootThePigEnabled(shootThePigEnabled), initialPairDiscardEnabled: normalizeInitialPairDiscardEnabled(initialPairDiscardEnabled), passThreeEnabled: normalizePassThreeEnabled(passThreeEnabled), penaltyMode: normalizePenaltyMode(penaltyMode), pickTargetCount: normalizePickTargetCount(pickTargetCount), initialPairDone:[], passDone:[], passSelections:{}, lead:0, current:0, leadSuit:null, trick:[], stock:[], log:[], message:'4人そろったら開始できます。人が足りない場合はCPUを追加できます。', pendingPick:null, commentary:[], lastTrick:null};
-  const player = {id, name: cleanName(name), ws, cpu:false, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
+  const room = {code:c, hostId:id, players:[], phase:'lobby', round:1, totalRounds: normalizeRoundCount(totalRounds), madPigEnabled: normalizeMadPigEnabled(madPigEnabled), jokerPenalty: normalizeJokerPenalty(jokerPenalty), jokerPenaltyTiming: normalizeJokerPenaltyTiming(jokerPenaltyTiming), shootThePigEnabled: normalizeMadPigEnabled(madPigEnabled) && normalizeShootThePigEnabled(shootThePigEnabled), initialPairDiscardEnabled: normalizeInitialPairDiscardEnabled(initialPairDiscardEnabled), passThreeEnabled: normalizePassThreeEnabled(passThreeEnabled), penaltyMode: normalizePenaltyMode(penaltyMode), pickTargetCount: normalizePickTargetCount(pickTargetCount), initialPairDone:[], passDone:[], passSelections:{}, lead:0, current:0, leadSuit:null, trick:[], stock:[], log:[], message:'4人そろったら開始できます。人が足りない場合はCPUを追加できます。', pendingPick:null, commentary:[], lastTrick:null, shootPigEvent:null, madPigEvent:null, pairCleanEvent:null, emptySince:null, cleanupTimer:null};
+  const player = {id, resumeToken:newResumeToken(), name: cleanName(name), ws, cpu:false, disconnectedAt:null, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
   room.players.push(player); rooms.set(c, room); ws.roomCode=c; ws.playerId=id;
-  log(room, `${player.name} が部屋を作りました。${roomOptionSummary(room)}`); send(ws,'created',{code:c, playerId:id}); broadcast(room);
+  log(room, `${player.name} が部屋を作りました。${roomOptionSummary(room)}`); send(ws,'created',{code:c, playerId:id, name:player.name, resumeToken:player.resumeToken}); broadcast(room);
 }
 function cleanName(n){ return String(n || '').trim().slice(0,12) || '子ブタ'; }
-function joinRoom(ws, c, name, playerId=null){
+function joinRoom(ws, c, name, playerId=null, resumeToken=null){
   c = String(c||'').toUpperCase().trim(); const room = rooms.get(c);
   if(!room) return send(ws,'errorMsg',{message:'部屋が見つかりません。'});
+  const existing = findReconnectCandidate(room, playerId, name, resumeToken);
+  if(existing) return reconnectRoom(ws, c, existing.player.id, existing.player.name, resumeToken);
   if(room.phase !== 'lobby'){
-    const found = findReconnectCandidate(room, playerId, name);
-    if(found) return reconnectRoom(ws, c, found.player.id, found.player.name);
     return send(ws,'errorMsg',{message:'この部屋は開始済みです。切断復帰の場合は同じ名前で再接続してください。'});
   }
   if(room.players.length >= 4) {
-    const found = findReconnectCandidate(room, playerId, name);
-    if(found) return reconnectRoom(ws, c, found.player.id, found.player.name);
     return send(ws,'errorMsg',{message:'この部屋は満員です。'});
   }
-  const id = uid(); const player = {id, name:cleanName(name), ws, cpu:false, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
+  const id = uid(); const player = {id, resumeToken:newResumeToken(), name:cleanName(name), ws, cpu:false, disconnectedAt:null, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
+  cancelRoomCleanup(room);
   room.players.push(player); ws.roomCode=c; ws.playerId=id;
-  log(room, `${player.name} が参加しました。`); send(ws,'joined',{code:c, playerId:id}); broadcast(room);
+  log(room, `${player.name} が参加しました。`); send(ws,'joined',{code:c, playerId:id, name:player.name, resumeToken:player.resumeToken}); broadcast(room);
 }
 
 
@@ -1570,7 +1684,7 @@ function addCpu(room, requesterId){
   if(room.players.length >= 4) { room.message='この部屋は満員です。'; broadcast(room); return; }
   const used = new Set(room.players.filter(p=>p.cpu).map(p=>p.cpuCharacter?.key || cpuCharacterByName(p.name)?.key));
   const ch = CPU_CHARACTERS.find(c=>!used.has(c.key)) || {key:`cpu-${uid()}`, name:`CPU${room.players.length}`, avatar:'🐷'};
-  const player = {id:`CPU-${uid()}`, name:ch.name, ws:null, cpu:true, cpuCharacter:ch, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
+  const player = {id:`CPU-${uid()}`, name:ch.name, ws:null, cpu:true, disconnectedAt:null, cpuCharacter:ch, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
   room.players.push(player);
   log(room, `${player.name} を追加しました。`);
   say(room, room.players.length-1, ch.catchphrase || 'よろしくお願いします。', {eventKey:'greeting'});
@@ -1758,6 +1872,16 @@ function disconnectedPickTargetFallbackIds(room, pp){
 
 function ensureRoomProgress(room){
   if(!room) return;
+  // 結果モーダルを誰も閉じない、または確認役が切断した場合でも卓を止めない。
+  // 45秒は内容確認と通常の再接続に十分な猶予を持たせたフェイルセーフ。
+  if(room.phase === 'roundEnd'){
+    const createdAt = Number(room.roundEndSummary?.createdAt || Date.now());
+    if(Date.now() >= createdAt + ROUND_END_AUTO_CONTINUE_MS){
+      log(room, `⏭️ 結果確認が${Math.round(ROUND_END_AUTO_CONTINUE_MS/1000)}秒を超えたため、次のラウンドへ自動で進みます。`);
+      beginNextRound(room);
+    }
+    return;
+  }
   // 開始時ペア捨てフェイズの進行確認。CPU処理と全員完了判定だけ行う。
   if(room.phase === 'passing'){
     // 3枚パスフェイズの進行確認。CPU処理と全員完了判定だけ行う。
@@ -1898,11 +2022,11 @@ function ensureRoomProgress(room){
   }
 
   // ピック結果が出ているのにpendingPickが残り続けている場合は進める。
-  // 通常結果は約2.6秒、ババブタ公開ピックは演出強化のため約4.3秒表示する。
-  // 監視側が早すぎるとババブタ演出を途中で切ってしまうため、結果内容ごとに猶予を変える。
+  // 結果の種類に応じた演出時間を確保する。監視側も同じ関数を使い、
+  // ババブタ・マッド・ペア演出の途中で進行を切らない。
   if(room.pendingPick && room.pendingPick.result){
     const age = Date.now() - (room.pendingPick.resultAt || Date.now());
-    const expectedDelay = room.pendingPick.result?.drawn?.joker ? 4300 : 2600;
+    const expectedDelay = pickResultDisplayMs(room, room.pendingPick.result);
     const recoverAfter = expectedDelay + 1500;
     if(age > recoverAfter){
       log(room, '⚠️ ピック結果表示後に停止を検知したため、自動復旧しました。');
@@ -1916,6 +2040,16 @@ function ensureRoomProgress(room){
     const ids = playableIds(room, room.current);
     if(ids.size > 0){
       const now = Date.now();
+      const currentPlayer = room.players[room.current];
+      if(!isPlayerConnectedForProgress(currentPlayer)){
+        currentPlayer.disconnectedAt = currentPlayer.disconnectedAt || now;
+        if(now - currentPlayer.disconnectedAt >= DISCONNECTED_ACTION_GRACE_MS){
+          const fallbackId = shuffle([...ids])[0];
+          log(room, `⚠️ ${currentPlayer.name} が切断したままのため、合法手からランダムに1枚出して進行を復旧しました。`);
+          playCard(room, currentPlayer.id, fallbackId);
+          return;
+        }
+      }
       if(!room.lastHumanTurnRebroadcastAt || now - room.lastHumanTurnRebroadcastAt > 2500){
         room.lastHumanTurnRebroadcastAt = now;
         broadcast(room);
@@ -2097,7 +2231,7 @@ function startGame(room, requesterId){
   clearAllProgressTimers(room);
   room.phase='playing'; room.round=1; room.lead=Math.floor(Math.random()*4); room.current=room.lead; room.trick=[]; room.leadSuit=null; room.pendingPick=null; room.trickReview=null; room.stock=[];
   room.roundEndSummary=null; room.finalRoundSummary=null; room.roundEndOutPid=null; room.roundEndDeferred=null; room.initialPairDone=[]; room.passDone=[]; room.passSelections={};
-  room.roundStart = null; room.shootPigRoundResults={}; room.shootPigEvent=null;
+  room.roundStart = null; room.shootPigRoundResults={}; room.shootPigEvent=null; room.madPigEvent=null; room.pairCleanEvent=null;
   room.lastHumanTurnRebroadcastAt = 0; room.lastNoPlayableRebroadcastAt = 0;
   for(const p of room.players){ p.hand=[]; p.scorePile=[]; p.pairs=[]; p.jokerPenaltyBank=0; p.shootPigPenaltyBank=0; p.shootPigFinalMadPigWaived=false; p.shootPigGameEndJokerWaived=false; p.shootPigActivatedRounds=[]; p.out=false; p.final=null; }
   dealInitial(room);
@@ -2105,6 +2239,7 @@ function startGame(room, requesterId){
 
   if(room.passThreeEnabled){
     room.phase='passing';
+    room.setupPhaseStartedAt=Date.now();
     room.current=null;
     room.message='3枚パス：ババブタ以外から3枚選んでください。';
     log(room, '3枚パスあり。各プレイヤーは次の手番の人へ通常カードを3枚渡します。ババブタは渡せません。');
@@ -2115,6 +2250,7 @@ function startGame(room, requesterId){
 
   if(room.initialPairDiscardEnabled){
     room.phase='initialPair';
+    room.setupPhaseStartedAt=Date.now();
     room.current=null;
     room.message='開始時ペア捨て：ペアを捨てるかスキップしてください。';
     log(room, '開始時ペア捨てあり。各プレイヤーは任意で手札の同じ数字ペアを捨てられます。');
@@ -2221,6 +2357,7 @@ function finishPassThreePhase(room){
 
   if(room.initialPairDiscardEnabled){
     room.phase='initialPair';
+    room.setupPhaseStartedAt=Date.now();
     room.current=null;
     room.message='3枚パス完了。開始時ペア捨てへ進みます。';
     log(room, '開始時ペア捨てあり。各プレイヤーは任意で手札の同じ数字ペアを捨てられます。');
@@ -2235,6 +2372,17 @@ function finishPassThreePhase(room){
 function maybeFinishPassPhase(room){
   if(!room || room.phase !== 'passing') return;
   autoResolveCpuPasses(room);
+  if(Date.now() - Number(room.setupPhaseStartedAt || Date.now()) > 30000){
+    for(let i=0;i<room.players.length;i++){
+      const p=room.players[i];
+      if(p.cpu || isPlayerConnectedForProgress(p) || (room.passDone || []).includes(i)) continue;
+      const ids=shuffle(passableCardIds(p).slice()).slice(0,3);
+      if(ids.length===3){
+        log(room, `⚠️ ${p.name} が切断中のため、3枚パスをランダム選択して進行を復旧しました。`);
+        submitPassThree(room, p.id, ids, true);
+      }
+    }
+  }
   if(allPassDone(room)) finishPassThreePhase(room);
   else broadcast(room);
 }
@@ -2275,6 +2423,7 @@ function submitPassThree(room, playerId, cardIds, silent=false){
 function beginPlayingAfterSetup(room){
   if(!room) return;
   room.phase='playing';
+  room.setupPhaseStartedAt=null;
   room.current=room.lead;
   room.roundStart = {round:1, text:`第1ラウンド開始！全${room.totalRounds || 3}ラウンド。3枚パス${room.passThreeEnabled ? 'あり' : 'なし'}。開始時ペア捨て${room.initialPairDiscardEnabled ? 'あり' : 'なし'}。`, expiresAt:Date.now()+6500};
   room.message=`第1ラウンド開始。${room.players[room.current].name} からリード。`;
@@ -2352,6 +2501,14 @@ function beginPlayingAfterInitialPairs(room){
 function maybeFinishInitialPairPhase(room){
   if(!room || room.phase !== 'initialPair') return;
   autoResolveCpuInitialPairs(room);
+  if(Date.now() - Number(room.setupPhaseStartedAt || Date.now()) > 30000){
+    for(let i=0;i<room.players.length;i++){
+      const p=room.players[i];
+      if(p.cpu || isPlayerConnectedForProgress(p) || (room.initialPairDone || []).includes(i) || !hasInitialPairCandidate(p)) continue;
+      markInitialPairDone(room, i);
+      log(room, `⚠️ ${p.name} が切断中のため、開始時ペア捨てをスキップして進行を復旧しました。`);
+    }
+  }
   if(allInitialPairDone(room)) beginPlayingAfterInitialPairs(room);
   else broadcast(room);
 }
@@ -2380,6 +2537,9 @@ function discardInitialPair(room, playerId, cardAId, cardBId, silent=false){
   const c2 = p.hand.splice(lo,1)[0];
   p.pairs.push(c1, c2);
   sortHand(p.hand);
+  // 開始時ペアはランクだけが従来から公開情報。スートを追加で漏らさないため、
+  // 演出イベントにはカード実体を含めず同じ数字の2枚として見せる。
+  registerPairCleanEvent(room, pid, [c1,c2], 'initial', false);
   assertUniqueActiveCards(room, '開始時ペア捨て後');
 
   if(!silent){
@@ -2503,6 +2663,8 @@ function resolveTrick(room){
     if(line) say(room, wi, line, {eventKey:'watch'});
   }
   wp.scorePile.push(...room.trick.map(x=>x.card));
+  const capturedMadPig = room.madPigEnabled !== false ? room.trick.map(x=>x.card).find(isMadPig) : null;
+  if(capturedMadPig) registerMadPigEvent(room, winner.pid, capturedMadPig, 'trick');
   log(room, `👑 ${wp.name} が勝利。場の4枚をごちそう山へ。`);
   log(room, `💀 最弱は ${lp.name}（${cardText(weakest.card)}）。`);
   room.message = `トリック終了！ 👑勝者は ${wp.name}、💀最弱は ${lp.name}。5秒後にババ抜きピックへ進みます。`;
@@ -2523,8 +2685,9 @@ function completePickWithoutPair(room, pp, drawn){
     ? `${wp.name} はババブタを引いた！`
     : `${wp.name} は ${cardText(drawn)} を手札に加えた。`;
   pp.pairChoice = null;
-  pp.result = {drawn, paired:false, skipped:true, text};
+  pp.result = {eventId:`pick-${room.round || 1}-${pp.winnerPid}-${uid()}`, drawn, paired:false, skipped:true, text};
   pp.resultAt = Date.now();
+  if(room.madPigEnabled !== false && isMadPig(drawn)) registerMadPigEvent(room, pp.winnerPid, drawn, 'pick');
   log(room, `🐽 ${text}`);
   if(wp.cpu) say(room, pp.winnerPid, resultLine(drawn, false, room, pp.winnerPid), {eventKey:drawn.joker?'baba':'pick',intensity:drawn.joker?'critical':'medium'});
   else if(drawn.joker){
@@ -2533,7 +2696,7 @@ function completePickWithoutPair(room, pp, drawn){
   }
   room.message = text;
   broadcast(room);
-  ensurePickFinish(room, pp, pp.winnerPid, drawn.joker ? 4300 : 2600);
+  ensurePickFinish(room, pp, pp.winnerPid, pickResultDisplayMs(room, pp.result));
 }
 
 function completePickWithPair(room, pp, drawn, pairCard){
@@ -2550,8 +2713,9 @@ function completePickWithPair(room, pp, drawn, pairCard){
 
   const text = `${wp.name} は ${drawn.rank} のおそろいペアを選んで浄化！`;
   pp.pairChoice = null;
-  pp.result = {drawn, paired:true, skipped:false, pairCard, text};
+  pp.result = {eventId:`pick-${room.round || 1}-${pp.winnerPid}-${uid()}`, drawn, paired:true, skipped:false, pairCard, text};
   pp.resultAt = Date.now();
+  registerPairCleanEvent(room, pp.winnerPid, pairedCards, 'pick', true);
   log(room, `🐽 ${text}`);
   if(wp.cpu) say(room, pp.winnerPid, resultLine(drawn, true, room, pp.winnerPid), {eventKey:'pair'});
   else {
@@ -2561,7 +2725,7 @@ function completePickWithPair(room, pp, drawn, pairCard){
   room.message = text;
   assertUniqueActiveCards(room, 'ペア選択後');
   broadcast(room);
-  ensurePickFinish(room, pp, pp.winnerPid, 2600);
+  ensurePickFinish(room, pp, pp.winnerPid, pickResultDisplayMs(room, pp.result));
   return true;
 }
 
@@ -2834,6 +2998,9 @@ function beginNextRound(room){
   room.roundEndSummary = null;
   room.roundEndOutPid = null;
   room.roundEndDeferred = null;
+  room.shootPigEvent = null;
+  room.madPigEvent = null;
+  room.pairCleanEvent = null;
   room.lead = outPid;
   room.current = outPid;
   room.lastHumanTurnRebroadcastAt = 0;
@@ -3025,39 +3192,56 @@ function score(room){
 
 
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', ()=>{ ws.isAlive = true; });
   ws.on('message', (raw) => {
+    ws.isAlive = true;
     let msg; try { msg=JSON.parse(raw); } catch(e){ return; }
-    if(msg.type==='create') return createRoom(ws, msg.name, msg.rounds, msg.madPigEnabled, msg.jokerPenalty, msg.initialPairDiscardEnabled, msg.passThreeEnabled, msg.penaltyMode, msg.pickTargetCount, msg.jokerPenaltyTiming, msg.shootThePigEnabled);
-    if(msg.type==='join') return joinRoom(ws, msg.code, msg.name, msg.playerId);
-    if(msg.type==='reconnect') return reconnectRoom(ws, msg.code, msg.playerId, msg.name);
-    const room = roomByWs(ws); if(!room) return;
-    if(msg.type==='start') startGame(room, ws.playerId);
-    if(msg.type==='addCpu') addCpu(room, ws.playerId);
-    if(msg.type==='removeCpu') removeCpu(room, ws.playerId);
-    if(msg.type==='play') playCard(room, ws.playerId, msg.cardId);
-    if(msg.type==='pick') doPick(room, ws.playerId, Number(msg.index));
-    if(msg.type==='pickTargets') submitPickTargets(room, ws.playerId, msg.cardIds);
-    if(msg.type==='pairChoice') resolvePairChoice(room, ws.playerId, msg.cardId, !!msg.skip);
-    if(msg.type==='passThree') submitPassThree(room, ws.playerId, msg.cardIds);
-    if(msg.type==='initialPairDiscard') discardInitialPair(room, ws.playerId, String(msg.cardAId||''), String(msg.cardBId||''));
-    if(msg.type==='skipInitialPairs') skipInitialPairs(room, ws.playerId);
-    if(msg.type==='continueRound') {
-      if(room.phase === 'roundEnd'){
-        log(room, `ラウンド結果確認OK。第${room.round+1}ラウンドへ進みます。`);
-        beginNextRound(room);
+    try{
+      if(msg.type==='ping') return send(ws,'pong',{at:Date.now(), echo:msg.at || null});
+      if((msg.type==='create' || msg.type==='join' || msg.type==='reconnect') && roomByWs(ws)){
+        return send(ws,'errorMsg',{message:'この画面はすでに部屋へ接続済みです。別の部屋へ移る場合は新しい画面で開いてください。'});
       }
+      if(msg.type==='create') return createRoom(ws, msg.name, msg.rounds, msg.madPigEnabled, msg.jokerPenalty, msg.initialPairDiscardEnabled, msg.passThreeEnabled, msg.penaltyMode, msg.pickTargetCount, msg.jokerPenaltyTiming, msg.shootThePigEnabled);
+      if(msg.type==='join') return joinRoom(ws, msg.code, msg.name, msg.playerId, msg.resumeToken);
+      if(msg.type==='reconnect') return reconnectRoom(ws, msg.code, msg.playerId, msg.name, msg.resumeToken);
+      const room = roomByWs(ws); if(!room) return;
+      const activePlayer=room.players.find(player=>player.id===ws.playerId);
+      if(!activePlayer || activePlayer.ws!==ws){
+        return send(ws,'errorMsg',{message:'この接続は別の画面へ引き継がれました。操作を続けるには再接続してください。'});
+      }
+      if(msg.type==='start') startGame(room, ws.playerId);
+      if(msg.type==='addCpu') addCpu(room, ws.playerId);
+      if(msg.type==='removeCpu') removeCpu(room, ws.playerId);
+      if(msg.type==='play') playCard(room, ws.playerId, msg.cardId);
+      if(msg.type==='pick') doPick(room, ws.playerId, Number(msg.index));
+      if(msg.type==='pickTargets') submitPickTargets(room, ws.playerId, msg.cardIds);
+      if(msg.type==='pairChoice') resolvePairChoice(room, ws.playerId, msg.cardId, !!msg.skip);
+      if(msg.type==='passThree') submitPassThree(room, ws.playerId, msg.cardIds);
+      if(msg.type==='initialPairDiscard') discardInitialPair(room, ws.playerId, String(msg.cardAId||''), String(msg.cardBId||''));
+      if(msg.type==='skipInitialPairs') skipInitialPairs(room, ws.playerId);
+      if(msg.type==='continueRound') {
+        if(room.phase === 'roundEnd'){
+          log(room, `ラウンド結果確認OK。第${room.round+1}ラウンドへ進みます。`);
+          beginNextRound(room);
+        }
+      }
+    }catch(error){
+      console.error('client message handling error', error);
+      send(ws,'errorMsg',{message:'操作を処理できませんでした。状態を同期し直します。'});
+      const room=roomByWs(ws);
+      if(room) broadcast(room);
     }
   });
   ws.on('close', () => {
     const room = roomByWs(ws); if(!room) return;
     const p = room.players.find(x=>x.id===ws.playerId); if(p && p.ws === ws) {
       p.ws = null;
+      p.disconnectedAt = Date.now();
       log(room, `${p.name} が切断しました。再接続待ちです。`);
       broadcast(room);
     }
-    if(room.players.every(p=>!p.ws || p.ws.readyState!==WebSocket.OPEN)) setTimeout(()=>{
-      const r = rooms.get(room.code); if(r && r.players.every(p=>!p.ws || p.ws.readyState!==WebSocket.OPEN)) rooms.delete(room.code);
-    }, 10*60*1000);
+    if(room.players.every(p=>p.cpu || !isOpenWs(p.ws))) scheduleRoomCleanup(room);
   });
 });
 

@@ -5,8 +5,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/default_rules_regression.js",
-    "test:smoke": "node tests/websocket_game_smoke.js"
+    "test": "node tests/default_rules_regression.js && node tests/mobile_ui_regression.js && node tests/source_integrity_regression.js",
+    "test:ui": "node tests/mobile_ui_regression.js",
+    "test:smoke": "node tests/websocket_game_smoke.js",
+    "test:reconnect": "node tests/reconnect_recovery_smoke.js",
+    "test:resilience": "node tests/progress_resilience_smoke.js",
+    "test:integrity": "node tests/source_integrity_regression.js"
   },
   "dependencies": {
     "ws": "^8.18.0"
