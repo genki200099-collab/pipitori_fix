@@ -1,0 +1,17 @@
+{
+  "name": "pipi-tori-online",
+  "version": "0.1.0",
+  "description": "Online room-code prototype for ピッグ・ピック・トリック（ピピとり）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/default_rules_regression.js",
+    "test:smoke": "node tests/websocket_game_smoke.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
