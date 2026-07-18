@@ -5,8 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/default_rules_regression.js && node tests/mobile_ui_regression.js && node tests/source_integrity_regression.js",
-    "test:ui": "node tests/mobile_ui_regression.js",
+    "test": "node tests/default_rules_regression.js && node tests/mobile_ui_regression.js && node tests/layout_collision_regression.js && node tests/source_integrity_regression.js",
+    "test:ui": "node tests/mobile_ui_regression.js && node tests/layout_collision_regression.js",
+    "test:layout": "node tests/layout_collision_regression.js",
     "test:smoke": "node tests/websocket_game_smoke.js",
     "test:reconnect": "node tests/reconnect_recovery_smoke.js",
     "test:resilience": "node tests/progress_resilience_smoke.js",
@@ -14,6 +15,11 @@
   },
   "dependencies": {
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "acorn": "^8.17.0",
+    "css-tree": "^3.2.1",
+    "parse5": "^8.0.1"
   },
   "engines": {
     "node": "22.x"

@@ -5288,6 +5288,619 @@ body.mad-impact-active .game-arena{animation:madArenaPulse .46s ease-in-out 2}
   .moment-particles,.shoot-confetti,.baba-confetti,.shoot-impact-ring{display:none!important}
 }
 
+/* =========================================================
+   Collision-free table & commentary rails v10
+   - cards use layout cells instead of intersecting seat offsets
+   - avatar and copy own separate, fixed grid columns
+   - compact viewports reserve independent player/table/message/hand rails
+   ========================================================= */
+.trick-board.collision-safe-layout-v10{
+  display:grid!important;
+  grid-template-columns:repeat(2,var(--card-w));
+  grid-template-rows:repeat(2,max-content);
+  place-content:center;
+  column-gap:22px;
+  row-gap:18px;
+}
+.trick-board.collision-safe-layout-v10 .trick-slot{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:var(--card-w)!important;
+  min-width:var(--card-w)!important;
+  min-height:var(--card-h)!important;
+  transform:none!important;
+}
+.trick-board.collision-safe-layout-v10 .trick-slot.slot-left{grid-column:1;grid-row:1}
+.trick-board.collision-safe-layout-v10 .trick-slot.slot-top{grid-column:2;grid-row:1}
+.trick-board.collision-safe-layout-v10 .trick-slot.slot-right{grid-column:2;grid-row:2}
+.trick-board.collision-safe-layout-v10 .trick-slot.slot-bottom{grid-column:1;grid-row:2}
+.trick-board.collision-safe-layout-v10 .trick-center{display:none!important}
+.trick-board.collision-safe-layout-v10 .trick-card-motion.is-new{
+  animation:trickCardInCompact .42s cubic-bezier(.18,.86,.24,1.12) both!important;
+}
+.trick-board.collision-safe-layout-v10 .trick-slot-label{
+  width:max-content;
+  max-width:calc(var(--card-w) + 18px);
+  min-height:14px;
+  box-sizing:border-box;
+}
+
+/* The inherited 44px .speech-face was wider than the phone's 28px grid
+   column. Keep the face, image and text inside their own measured cells. */
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-bubble{
+  --comment-avatar:32px;
+  grid-template-columns:var(--comment-avatar) minmax(0,1fr)!important;
+  align-items:center!important;
+}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-face{
+  grid-column:1!important;
+  grid-row:1!important;
+  width:var(--comment-avatar)!important;
+  min-width:var(--comment-avatar)!important;
+  height:var(--comment-avatar)!important;
+  min-height:var(--comment-avatar)!important;
+  align-self:center!important;
+  overflow:hidden!important;
+}
+body.gameplay-mode.modern-game-ui .commentary-layer .commentary-avatar{
+  display:grid!important;
+  place-items:center!important;
+  width:100%!important;
+  min-width:0!important;
+  height:100%!important;
+  min-height:0!important;
+  box-sizing:border-box!important;
+}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body{
+  grid-column:2!important;
+  grid-row:1!important;
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-meta,
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-meta b,
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body p{min-width:0!important;max-width:100%!important}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-meta b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Desktop/tablet: the 2x2 trick matrix clears all four player panels. */
+body.gameplay-mode.modern-game-ui:not(.ui-phone) #message.table-message.message{bottom:80px!important}
+
+/* Tablets and desktop windows have enough width for one uninterrupted row. */
+@media (min-width:641px){
+  .trick-board.collision-safe-layout-v10{
+    grid-template-columns:repeat(4,var(--card-w));
+    grid-template-rows:max-content;
+    column-gap:14px;
+    row-gap:0;
+  }
+  .trick-board.collision-safe-layout-v10 .trick-slot.slot-left{grid-column:1;grid-row:1}
+  .trick-board.collision-safe-layout-v10 .trick-slot.slot-top{grid-column:2;grid-row:1}
+  .trick-board.collision-safe-layout-v10 .trick-slot.slot-right{grid-column:3;grid-row:1}
+  .trick-board.collision-safe-layout-v10 .trick-slot.slot-bottom{grid-column:4;grid-row:1}
+  body.gameplay-mode.modern-game-ui:not(.ui-phone) #message.table-message.message{bottom:80px!important}
+}
+
+/* Phone portrait: four independent cells and two independent bottom rails. */
+@media (max-width:720px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen{
+    --slot-x:0px!important;
+    --slot-y:0px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #table.modern-table.playing-now{
+    inset:58px 8px 112px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.collision-safe-layout-v10{
+    column-gap:16px;
+    row-gap:12px;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.collision-safe-layout-v10 .trick-slot-label{
+    min-height:13px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-card-motion.is-new{
+    animation:trickCardInCompact .42s cubic-bezier(.18,.86,.24,1.12) both!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer{
+    bottom:54px!important;
+    height:48px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-bubble{
+    --comment-avatar:29px;
+    height:48px!important;
+    gap:7px!important;
+    padding:5px 7px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #message.table-message.message{
+    bottom:6px!important;
+    min-height:40px!important;
+    max-height:42px!important;
+  }
+  /* The action rail, message rail and cinematic overlays already convey
+     these events; a floating toast would cover the bottom message rail. */
+  body.gameplay-mode:not(.finished-mode) .hype-toast{display:none!important}
+}
+
+/* Medium-width phones can also have a short browser viewport. */
+@media (max-width:430px) and (max-height:650px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen{
+    --card-w:52px!important;
+    --card-h:80px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #table.modern-table.playing-now{
+    inset:54px 7px 108px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.collision-safe-layout-v10{
+    column-gap:12px;
+    row-gap:8px;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.collision-safe-layout-v10 .trick-slot-label{
+    min-height:11px!important;
+    font-size:6.5px!important;
+    padding:1px 3px!important;
+  }
+}
+
+@media (max-width:430px) and (max-height:620px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen{
+    --card-w:48px!important;
+    --card-h:72px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #table.modern-table.playing-now{
+    inset:52px 6px 104px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.collision-safe-layout-v10{
+    column-gap:10px;
+    row-gap:6px;
+  }
+}
+
+@media (max-width:360px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #table.modern-table.playing-now{
+    inset:52px 6px 102px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.collision-safe-layout-v10{
+    column-gap:12px;
+    row-gap:9px;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer{
+    bottom:50px!important;
+    height:42px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-bubble{
+    --comment-avatar:26px;
+    height:42px!important;
+    gap:6px!important;
+    padding:4px 6px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #message.table-message.message{
+    bottom:5px!important;
+    min-height:38px!important;
+    max-height:38px!important;
+  }
+}
+
+/* Short portrait browser areas (for example iPhone SE with browser bars). */
+@media (max-width:360px) and (max-height:600px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen{
+    --card-w:48px!important;
+    --card-h:72px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #table.modern-table.playing-now{
+    inset:50px 6px 98px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.collision-safe-layout-v10{
+    column-gap:10px;
+    row-gap:6px;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.collision-safe-layout-v10 .trick-slot-label{
+    min-height:11px!important;
+    font-size:6px!important;
+    padding:1px 3px!important;
+  }
+}
+
+/* Phone landscape: all four trick cards fit in a single reading row. */
+@media (max-height:520px) and (orientation:landscape){
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape #table.modern-table.playing-now{
+    inset:44px 8px 42px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-board.collision-safe-layout-v10{
+    grid-template-columns:repeat(4,var(--card-w));
+    grid-template-rows:max-content;
+    column-gap:12px;
+    row-gap:0;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-board.collision-safe-layout-v10 .trick-slot.slot-left{grid-column:1;grid-row:1}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-board.collision-safe-layout-v10 .trick-slot.slot-top{grid-column:2;grid-row:1}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-board.collision-safe-layout-v10 .trick-slot.slot-right{grid-column:3;grid-row:1}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-board.collision-safe-layout-v10 .trick-slot.slot-bottom{grid-column:4;grid-row:1}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-board.collision-safe-layout-v10 .trick-slot-label{
+    display:block!important;
+    min-height:10px!important;
+    max-width:var(--card-w)!important;
+    padding:1px 2px!important;
+    font-size:6px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-card-motion.is-new{
+    animation:trickCardInCompact .38s cubic-bezier(.18,.86,.24,1.12) both!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer{
+    left:4px!important;
+    right:auto!important;
+    bottom:4px!important;
+    width:calc(42% - 6px)!important;
+    height:34px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-bubble{
+    --comment-avatar:23px;
+    height:34px!important;
+    gap:5px!important;
+    padding:4px 5px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape #message.table-message.message{
+    left:auto!important;
+    right:4px!important;
+    bottom:4px!important;
+    width:calc(58% - 6px)!important;
+    min-height:34px!important;
+    max-height:34px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card:last-child{bottom:0!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock .hand.fan-hand:not(.selection-mode) .hand-card.is-selected{
+    transform:translateX(-50%) translateY(calc(var(--fan-y) - 4px)) rotate(0deg) scale(1.015)!important;
+  }
+  body.gameplay-mode:not(.finished-mode) .hype-toast{display:none!important}
+}
+
+/* Extra-short landscape browser areas retain four readable cards. */
+@media (max-height:360px) and (orientation:landscape){
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-screen{
+    --card-w:42px!important;
+    --card-h:62px!important;
+    grid-template-rows:34px 26px minmax(0,1fr) 90px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-hud{min-height:34px!important;padding-block:2px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-brand span{width:28px!important;height:28px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-round-status.round-status{height:26px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .player{height:32px!important;min-height:32px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape #table.modern-table.playing-now{
+    inset:36px 6px 34px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-board.collision-safe-layout-v10{column-gap:8px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer{bottom:3px!important;height:28px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-bubble{
+    --comment-avatar:19px;
+    height:28px!important;
+    gap:4px!important;
+    padding:3px 4px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-body p{-webkit-line-clamp:1!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape #message.table-message.message{
+    bottom:3px!important;
+    min-height:28px!important;
+    max-height:28px!important;
+    padding:4px 6px!important;
+    font-size:7px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-dock-title{top:2px!important;font-size:7px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-view-toggle{min-height:20px!important;padding:1px 5px!important}
+}
+
+@keyframes trickCardInCompact{
+  0%{opacity:0;transform:translateY(10px) scale(.84);filter:blur(2px)}
+  72%{opacity:1;transform:translateY(-2px) scale(1.035);filter:none}
+  100%{transform:none;filter:none}
+}
+
+/* =========================================================
+   Trick result clarity & resilient typography v11
+   - winner and weakest use different motion, color and in-card badges
+   - the result summary owns a reserved lane outside the card matrix
+   - compact text truncates inside its own cell instead of spilling
+   ========================================================= */
+.trick-board.trick-result-layout-v11 .trick-slot-label{
+  display:block!important;
+  width:var(--card-w)!important;
+  max-width:var(--card-w)!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  padding:3px 4px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+  font-size:9px;
+  line-height:1.1;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot-label{
+  color:#a9cbc4;
+  background:rgba(3,24,28,.64);
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot-label.result-winner{
+  color:#302300!important;
+  border:1px solid #ffe58f;
+  background:linear-gradient(135deg,#ffe996,#f2c653)!important;
+  box-shadow:0 4px 14px rgba(241,199,91,.28);
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot-label.result-weakest{
+  color:#fff!important;
+  border:1px solid #d5b0ff;
+  background:linear-gradient(135deg,#704591,#4a2f69)!important;
+  box-shadow:0 4px 14px rgba(189,130,243,.24);
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot-label.result-both{
+  color:#fff!important;
+  border:1px solid #ffe58f;
+  background:linear-gradient(105deg,#b58a22,#714595 72%)!important;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-card-motion:before{
+  position:absolute;
+  right:3px;
+  top:3px;
+  z-index:8;
+  display:grid;
+  place-items:center;
+  min-width:19px;
+  height:19px;
+  box-sizing:border-box;
+  padding:0 4px;
+  border:1px solid rgba(255,255,255,.84);
+  border-radius:999px;
+  box-shadow:0 4px 12px rgba(0,0,0,.28);
+  font-size:11px;
+  line-height:1;
+  pointer-events:none;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.win .trick-card-motion:before{
+  content:'👑';
+  background:#f5cf63;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.weak .trick-card-motion:before{
+  content:'💀';
+  background:#6b418b;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.win.weak .trick-card-motion:before{
+  content:'👑💀';
+  background:linear-gradient(105deg,#d4aa38,#6b418b);
+  font-size:9px;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.win .trick-card-motion{
+  z-index:4;
+  animation:trickWinnerRevealV11 .68s cubic-bezier(.18,.88,.24,1.16) both!important;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.weak .trick-card-motion{
+  z-index:3;
+  animation:trickWeakestRevealV11 .72s cubic-bezier(.25,.78,.28,1) both!important;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.win.weak .trick-card-motion{
+  animation:trickDualResultV11 .72s cubic-bezier(.18,.88,.24,1.16) both!important;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot:not(.win):not(.weak) .trick-card-motion{
+  animation:trickSupportFadeV11 .42s ease-out both!important;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.win .playing-card{
+  border-color:#f3cb5d!important;
+  animation:trickWinnerHaloV11 1.15s .68s ease-in-out infinite alternate!important;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.weak .playing-card{
+  border-color:#c495f2!important;
+  animation:trickWeakestHaloV11 1.15s .72s ease-in-out infinite alternate!important;
+}
+.trick-board.trick-result-layout-v11.reviewing .trick-slot.win.weak .playing-card{
+  animation:trickDualHaloV11 1.15s .72s ease-in-out infinite alternate!important;
+}
+
+.review-banner.review-result-v11{
+  top:auto!important;
+  bottom:7px!important;
+  transform:translateX(-50%)!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:stretch;
+  gap:6px;
+  width:min(94%,500px)!important;
+  max-width:500px!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:6px!important;
+  border:1px solid rgba(255,229,143,.88)!important;
+  border-radius:15px!important;
+  background:rgba(5,31,36,.97)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.38),0 0 0 3px rgba(241,199,91,.12)!important;
+  color:#fff!important;
+  text-align:left!important;
+  overflow:hidden!important;
+  animation:resultBannerInV11 .46s cubic-bezier(.2,.9,.24,1.12) both!important;
+}
+.review-outcomes{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:5px;
+  min-width:0;
+}
+.review-outcome{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:center;
+  gap:5px;
+  min-width:0;
+  padding:5px 7px;
+  border-radius:10px;
+}
+.review-outcome span,.review-outcome b{min-width:0;white-space:nowrap}
+.review-outcome span{font-size:8px;font-weight:1000;letter-spacing:.04em}
+.review-outcome b{overflow:hidden;text-overflow:ellipsis;font-size:11px;line-height:1.1}
+.review-outcome.result-winner{border:1px solid rgba(255,226,126,.45);background:rgba(241,199,91,.14)}
+.review-outcome.result-winner span{color:#ffe58f}.review-outcome.result-winner b{color:#fff7d0}
+.review-outcome.result-weakest{border:1px solid rgba(213,176,255,.42);background:rgba(143,91,188,.15)}
+.review-outcome.result-weakest span{color:#e2c8ff}.review-outcome.result-weakest b{color:#f4e9ff}
+.review-countdown{
+  display:grid;
+  grid-template-columns:auto auto;
+  align-content:center;
+  align-items:baseline;
+  justify-content:center;
+  column-gap:3px;
+  min-width:76px;
+  padding:3px 7px;
+  border-radius:10px;
+  background:#113f41;
+  white-space:nowrap;
+  text-align:center;
+}
+.review-countdown span:first-child{grid-column:1/-1;color:#b6d7d0;font-size:7px;font-weight:900;letter-spacing:.06em}
+.review-countdown b{color:#ffe58f!important;font-size:15px!important;line-height:1}
+.review-countdown span:last-child{color:#fff;font-size:8px;font-weight:900}
+
+/* The result lane replaces transient speech/message rails for five seconds. */
+.game-screen.is-review-mode .commentary-layer,
+.game-screen.is-review-mode .last-trick-layer,
+.game-screen.is-review-mode #message.table-message.message{
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .game-screen.is-review-mode .table-players .player.position-bottom{
+  visibility:hidden!important;
+  opacity:0!important;
+}
+
+/* Readable defaults with every label constrained to its measured cell. */
+body.gameplay-mode.modern-game-ui .game-status.status b{font-size:13px}
+body.gameplay-mode.modern-game-ui .action-guide-copy,
+body.gameplay-mode.modern-game-ui .table-players .name,
+body.gameplay-mode.modern-game-ui .table-players .player-stats,
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body,
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-meta{min-width:0;max-width:100%;overflow:hidden}
+body.gameplay-mode.modern-game-ui .action-guide-copy b{font-size:12px;line-height:1.1}
+body.gameplay-mode.modern-game-ui .action-guide-copy small{font-size:9px;line-height:1.1}
+body.gameplay-mode.modern-game-ui .table-players .name{font-size:13px;line-height:1.18;text-overflow:ellipsis;white-space:nowrap}
+body.gameplay-mode.modern-game-ui .table-players .player-stats span{font-size:8.5px}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+body.gameplay-mode.modern-game-ui .commentary-layer .speech-body p{font-size:11px;line-height:1.3;overflow-wrap:anywhere}
+body.gameplay-mode.modern-game-ui #message.table-message.message{font-size:12px;line-height:1.32;overflow-wrap:anywhere}
+
+@keyframes trickWinnerRevealV11{
+  0%{opacity:.7;transform:translateY(5px) scale(.92);filter:brightness(.9)}
+  58%{opacity:1;transform:translateY(-7px) scale(1.07);filter:brightness(1.2)}
+  100%{transform:translateY(-4px) scale(1.035);filter:none}
+}
+@keyframes trickWeakestRevealV11{
+  0%{opacity:.72;transform:scale(.96) rotate(0);filter:saturate(.75)}
+  32%{transform:translateY(2px) scale(.98) rotate(-3deg)}
+  58%{transform:translateY(3px) scale(.97) rotate(3deg)}
+  78%{transform:translateY(2px) scale(.98) rotate(-1.5deg)}
+  100%{transform:translateY(2px) scale(.97) rotate(0);filter:saturate(.9)}
+}
+@keyframes trickDualResultV11{0%{opacity:.7;transform:scale(.92)}62%{opacity:1;transform:translateY(-5px) scale(1.06)}100%{transform:translateY(-2px) scale(1.025)}}
+@keyframes trickSupportFadeV11{from{opacity:1;filter:none}to{opacity:.48;filter:saturate(.62) brightness(.82)}}
+@keyframes trickWinnerHaloV11{
+  from{box-shadow:0 0 0 3px #f3cb5d,0 0 16px rgba(241,199,91,.5),0 8px 16px rgba(0,0,0,.22)}
+  to{box-shadow:0 0 0 4px #ffe58f,0 0 30px rgba(241,199,91,.85),0 12px 22px rgba(0,0,0,.3)}
+}
+@keyframes trickWeakestHaloV11{
+  from{box-shadow:0 0 0 3px #aa78dc,0 0 12px rgba(189,130,243,.4),0 7px 15px rgba(0,0,0,.25)}
+  to{box-shadow:0 0 0 4px #d5b0ff,0 0 24px rgba(189,130,243,.7),0 10px 20px rgba(0,0,0,.32)}
+}
+@keyframes trickDualHaloV11{from{box-shadow:-5px 0 18px rgba(241,199,91,.7),5px 0 18px rgba(189,130,243,.65)}to{box-shadow:-8px 0 28px rgba(241,199,91,.9),8px 0 28px rgba(189,130,243,.82)}}
+@keyframes resultBannerInV11{from{opacity:0;transform:translate(-50%,10px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+
+@media (max-width:720px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-banner.review-result-v11{
+    bottom:-94px!important;
+    grid-template-columns:1fr!important;
+    gap:3px!important;
+    width:calc(100vw - 20px)!important;
+    max-width:none!important;
+    padding:4px!important;
+    border-radius:12px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-outcomes{gap:4px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-outcome{gap:3px;padding:4px 5px;border-radius:8px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-outcome span{font-size:8px;letter-spacing:0}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-outcome b{font-size:10px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-countdown{display:flex;min-width:0;min-height:15px;padding:2px 5px;gap:3px;border-radius:7px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-countdown span:first-child{display:none}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-countdown b{font-size:13px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-countdown span:last-child{font-size:8px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-status.status b{font-size:11.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .action-guide-copy b{font-size:10.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .action-guide-copy small{font-size:8px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .name{font-size:10.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .player-stats span{font-size:8px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.trick-result-layout-v11 .trick-slot-label{font-size:8px!important;line-height:1!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body b{font-size:8.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body p{font-size:10px!important;line-height:1.16!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #message.table-message.message{font-size:11px!important;line-height:1.22!important}
+}
+
+@media (max-width:430px) and (max-height:650px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-banner.review-result-v11{bottom:-89px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.trick-result-layout-v11 .trick-slot-label{font-size:7px!important;padding:2px 3px!important}
+}
+@media (max-width:430px) and (max-height:620px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-banner.review-result-v11{bottom:-86px!important}
+}
+@media (max-width:360px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-banner.review-result-v11{bottom:-85px!important;width:calc(100vw - 16px)!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-outcome{padding-inline:4px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-outcome span{font-size:7.5px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-outcome b{font-size:9px}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .action-guide-copy b{font-size:10px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .table-players .name{font-size:10px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait #message.table-message.message{font-size:10.5px!important}
+}
+@media (max-width:360px) and (max-height:600px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .review-banner.review-result-v11{bottom:-81px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .trick-board.trick-result-layout-v11 .trick-slot-label{font-size:6.5px!important;padding:1px 2px!important}
+}
+
+@media (max-height:520px) and (orientation:landscape){
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-banner.review-result-v11{
+    bottom:-32px!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:3px!important;
+    width:calc(100vw - 20px)!important;
+    max-width:none!important;
+    min-height:28px!important;
+    padding:3px!important;
+    border-radius:9px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-outcomes{gap:3px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-outcome{gap:3px;padding:3px 5px;border-radius:6px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-outcome span{font-size:7px;letter-spacing:0}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-outcome b{font-size:8px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-countdown{display:flex;min-width:83px;padding:2px 5px;gap:2px;border-radius:6px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-countdown span:first-child{display:none}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-countdown b{font-size:11px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-countdown span:last-child{font-size:7px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-status.status b{font-size:10px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .action-guide-copy b{font-size:9px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .action-guide-copy small{font-size:7px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .table-players .name{font-size:8.5px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .trick-board.trick-result-layout-v11 .trick-slot-label{font-size:6.5px!important;padding:1px 2px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-body b,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-body p{font-size:7px!important;line-height:1.08!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape #message.table-message.message{font-size:8px!important;line-height:1.15!important}
+}
+
+@media (max-height:360px) and (orientation:landscape){
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-banner.review-result-v11{bottom:-29px!important;min-height:26px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-outcome{padding:2px 4px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-outcome span{font-size:6.5px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-outcome b{font-size:7.5px}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .review-countdown{min-width:76px;padding:1px 4px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .trick-board.trick-result-layout-v11.reviewing .trick-card-motion,
+  .trick-board.trick-result-layout-v11.reviewing .playing-card,
+  .review-banner.review-result-v11{animation:none!important;transition:none!important}
+}
+
 </style>
 </head>
 <body class="modern-game-ui">
@@ -7259,7 +7872,16 @@ function currentActionGuide(){
   }
   if(state.trickReview){
     const seconds=Math.max(0,Math.ceil((state.trickReview.until-Date.now())/1000));
-    return {icon:'👑',title:'トリック結果を確認',detail:`${seconds}秒後にピックへ`,tone:'result'};
+    const result=state.lastTrick;
+    const winnerName=result?.winnerName || state.players?.[state.trickReview.winnerPid]?.name || '勝者';
+    const weakestName=result?.weakestName || state.players?.[state.trickReview.weakestPid]?.name || '最弱';
+    const samePlayer=state.trickReview.winnerPid===state.trickReview.weakestPid;
+    return {
+      icon:samePlayer?'👑💀':'👑',
+      title:samePlayer ? `勝者・最弱 ${winnerName}` : `勝者 ${winnerName}｜最弱 ${weakestName}`,
+      detail:`結果確認中 · ${seconds}秒後にピックへ`,
+      tone:'result'
+    };
   }
   if(state.phase==='playing' && state.isYourTurn){
     const selected=(mine?.hand||[]).find(c=>c.id===selectedPlayCardId);
@@ -7658,7 +8280,16 @@ function renderTable(){
     return;
   }
   __lastTableRenderKey = tableKey;
-  const reviewBanner = review ? `<div class="review-banner">トリック結果確認中：<b id="reviewSeconds">${review}</b> 秒後にババ抜きピックへ進みます</div>` : '';
+  const winnerName=lt?.winnerName || (Number.isInteger(lt?.winnerPid) ? playerName(lt.winnerPid) : '勝者');
+  const weakestName=lt?.weakestName || (Number.isInteger(lt?.weakestPid) ? playerName(lt.weakestPid) : '最弱');
+  const sameResultPlayer=!!lt && lt.winnerPid===lt.weakestPid;
+  const reviewBanner = review ? `<div class="review-banner review-result-v11${sameResultPlayer?' same-player':''}" role="status" aria-label="勝者 ${escAttr(winnerName)}、最弱 ${escAttr(weakestName)}。結果確認中です">
+    <div class="review-outcomes">
+      <div class="review-outcome result-winner"><span>👑 勝者</span><b title="${escAttr(winnerName)}">${esc(winnerName)}</b></div>
+      <div class="review-outcome result-weakest"><span>💀 最弱</span><b title="${escAttr(weakestName)}">${esc(weakestName)}</b></div>
+    </div>
+    <div class="review-countdown"><span>結果確認</span><b id="reviewSeconds">${review}</b><span>秒後にピック</span></div>
+  </div>` : '';
   const trail = flow.map((pid,idx)=>{
     const done = trickMap.has(pid);
     const cur = state.current===pid && !done;
@@ -7675,17 +8306,22 @@ function renderTable(){
     const x=trickMap.get(pid);
     const delta = (pid - base + 4) % 4;
     const position = slotByDelta[delta];
-    const cls = `${lt && lt.winnerPid===pid ? ' win' : ''}${lt && lt.weakestPid===pid ? ' weak' : ''}${state.current===pid&&!state.pendingPick ? ' current' : ''}`;
-    const label = x ? `${orderBadge(x.order)} ${playerName(pid)}` : playerName(pid);
+    const isWinner=!!lt && lt.winnerPid===pid;
+    const isWeakest=!!lt && lt.weakestPid===pid;
+    const cls = `${isWinner ? ' win' : ''}${isWeakest ? ' weak' : ''}${state.current===pid&&!state.pendingPick ? ' current' : ''}`;
+    const roleLabel=isWinner && isWeakest ? '👑勝者・💀最弱' : isWinner ? '👑 勝者' : isWeakest ? '💀 最弱' : '';
+    const label = review && roleLabel ? roleLabel : x ? `${orderBadge(x.order)} ${playerName(pid)}` : playerName(pid);
+    const resultClass=isWinner && isWeakest ? ' result-both' : isWinner ? ' result-winner' : isWeakest ? ' result-weakest' : '';
+    const slotAria=review && roleLabel ? `${roleLabel}、${playerName(pid)}${x?.card ? `、${playCardChoiceLabel(x.card)}` : ''}` : `${playerName(pid)}${x?.card ? `、${playCardChoiceLabel(x.card)}` : ''}`;
     const isNew=!!(x?.card?.id && canAnimateNewTrickCard && !previousTrickMotionIds.has(x.card.id));
-    return `<div class="trick-slot slot-${position}${cls}">
+    return `<div class="trick-slot slot-${position}${cls}"${review?' data-result-slot="1"':''} aria-label="${escAttr(slotAria)}">
       ${x ? `<div class="trick-card-motion motion-${position}${isNew?' is-new':''}" data-trick-card-id="${escAttr(x.card.id)}">${cardHTML(x.card)}</div>` : '<div class="trick-slot-empty" aria-hidden="true"></div>'}
-      <div class="trick-slot-label">${esc(label)}</div>
+      <div class="trick-slot-label${resultClass}" title="${escAttr(review && roleLabel ? `${roleLabel} ${playerName(pid)}` : label)}">${esc(label)}</div>
     </div>`;
   }).join('');
   const centerLead = state.leadSuit ? `リード ${suitShortDisplay(state.leadSuit)}` : 'リード待ち';
   const centerTurn = state.current!=null&&!state.pendingPick ? playerName(state.current) : '結果確認中';
-  $('table').innerHTML=`<div class="trick-board${review?' reviewing':''}">${reviewBanner}<div class="play-trail">${trail}</div>${slots}<div class="trick-center"><div><span class="clockwise">↻</span><b>${esc(centerLead)}</b><span>次：${esc(centerTurn)}</span></div></div></div>`;
+  $('table').innerHTML=`<div class="trick-board collision-safe-layout-v10 trick-result-layout-v11${review?' reviewing':''}" data-layout="collision-safe">${reviewBanner}<div class="play-trail">${trail}</div>${slots}<div class="trick-center"><div><span class="clockwise">↻</span><b>${esc(centerLead)}</b><span>次：${esc(centerTurn)}</span></div></div></div>`;
   __lastTrickMotionIds=currentTrickMotionIds;
 }
 
