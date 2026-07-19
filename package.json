@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/default_rules_regression.js && node tests/mobile_ui_regression.js && node tests/layout_collision_regression.js && node tests/source_integrity_regression.js",
+    "test": "node tests/default_rules_regression.js && node tests/full_audit_regression.js && node tests/mobile_ui_regression.js && node tests/layout_collision_regression.js && node tests/source_integrity_regression.js",
     "test:ui": "node tests/mobile_ui_regression.js && node tests/layout_collision_regression.js",
     "test:layout": "node tests/layout_collision_regression.js",
     "test:smoke": "node tests/websocket_game_smoke.js",

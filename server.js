@@ -1442,6 +1442,24 @@ function isOpenWs(ws){
   return ws && ws.readyState === WebSocket.OPEN;
 }
 
+// ロビーで部屋主が離脱したままだと、残った参加者がCPU追加や開始を行えず停止する。
+// 接続中の人間へ部屋主を引き継ぎ、開始前の部屋を操作不能にしない。
+function ensureLobbyHost(room){
+  if(!room || room.phase !== 'lobby' || !Array.isArray(room.players)) return false;
+  const currentHost = room.players.find(p=>p.id === room.hostId);
+  if(currentHost && !currentHost.cpu && isOpenWs(currentHost.ws)) return false;
+
+  // 切断中の人へ部屋主権限を渡すと、接続中の参加者が開始できないままになる。
+  // 必ず現在操作できる人間だけを移譲先にする。誰も接続していない間は現状を保持し、
+  // 次の復帰時に reconnectRoom() から再評価する。
+  const nextHost = room.players.find(p=>!p.cpu && isOpenWs(p.ws));
+  if(!nextHost || nextHost.id === room.hostId) return false;
+  room.hostId = nextHost.id;
+  room.message = `${nextHost.name} が新しい部屋主になりました。CPUの追加・削除とゲーム開始ができます。`;
+  log(room, `👑 部屋主を ${nextHost.name} へ引き継ぎました。`);
+  return true;
+}
+
 function cancelRoomCleanup(room){
   if(!room) return;
   room.emptySince = null;
@@ -1491,7 +1509,7 @@ function reconnectRoom(ws, c, playerId, name, resumeToken){
   const room = rooms.get(c);
   if(!room) return send(ws,'errorMsg',{message:'復帰する部屋が見つかりません。'});
   const found = findReconnectCandidate(room, playerId, name, resumeToken);
-  if(!found) return send(ws,'errorMsg',{message:'復帰できる席が見つかりません。同じ部屋コードと名前で入り直してください。'});
+  if(!found) return send(ws,'errorMsg',{message:'復帰できる席が見つかりません。この席を使っていた端末の復帰情報（部屋コード・プレイヤーID・復帰トークン）が必要です。'});
 
   const {player, idx} = found;
   if(player.ws && player.ws !== ws && isOpenWs(player.ws)){
@@ -1502,6 +1520,8 @@ function reconnectRoom(ws, c, playerId, name, resumeToken){
   cancelRoomCleanup(room);
   ws.roomCode = c;
   ws.playerId = player.id;
+  // ロビーの旧部屋主が切断中なら、今まさに復帰した操作可能な参加者へ権限を移す。
+  ensureLobbyHost(room);
   log(room, `${player.name} が再接続しました。`);
   send(ws,'reconnected',{code:c, playerId:player.id, name:player.name, resumeToken:player.resumeToken || null});
   broadcast(room);
@@ -1666,7 +1686,7 @@ function joinRoom(ws, c, name, playerId=null, resumeToken=null){
   const existing = findReconnectCandidate(room, playerId, name, resumeToken);
   if(existing) return reconnectRoom(ws, c, existing.player.id, existing.player.name, resumeToken);
   if(room.phase !== 'lobby'){
-    return send(ws,'errorMsg',{message:'この部屋は開始済みです。切断復帰の場合は同じ名前で再接続してください。'});
+    return send(ws,'errorMsg',{message:'この部屋は開始済みです。切断復帰には、この席を使っていた端末のプレイヤーIDと復帰トークンが必要です。'});
   }
   if(room.players.length >= 4) {
     return send(ws,'errorMsg',{message:'この部屋は満員です。'});
@@ -1674,7 +1694,9 @@ function joinRoom(ws, c, name, playerId=null, resumeToken=null){
   const id = uid(); const player = {id, resumeToken:newResumeToken(), name:cleanName(name), ws, cpu:false, disconnectedAt:null, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
   cancelRoomCleanup(room);
   room.players.push(player); ws.roomCode=c; ws.playerId=id;
-  log(room, `${player.name} が参加しました。`); send(ws,'joined',{code:c, playerId:id, name:player.name, resumeToken:player.resumeToken}); broadcast(room);
+  log(room, `${player.name} が参加しました。`);
+  ensureLobbyHost(room);
+  send(ws,'joined',{code:c, playerId:id, name:player.name, resumeToken:player.resumeToken}); broadcast(room);
 }
 
 
@@ -1928,10 +1950,10 @@ function ensureRoomProgress(room){
     return;
   }
 
-  // トリックが5枚以上など不正状態になった場合は、先頭4枚で解決する。
+  // トリックが5枚以上など不正状態になった場合も、resolveTrick側で余分な札を
+  // 持ち主へ返してから先頭4枚を解決する。ここでsliceすると余分なカードが消える。
   if(!room.pendingPick && !room.trickReview && room.trick && room.trick.length>4){
-    log(room, '⚠️ 場のカード枚数が不正だったため、先頭4枚で復旧しました。');
-    room.trick = room.trick.slice(0,4);
+    log(room, '⚠️ 場のカード枚数が不正だったため、余分なカードを返して復旧します。');
     resolveTrick(room);
     broadcast(room);
     return;
@@ -2308,27 +2330,25 @@ function finishPassThreePhase(room){
   const transfers = [];
   for(let i=0;i<room.players.length;i++){
     const p = room.players[i];
-    const ids = (room.passSelections && room.passSelections[i]) || [];
+    const rawIds = (room.passSelections && room.passSelections[i]) || [];
+    const uniqueIds = [...new Set(rawIds.map(String))];
+    let ids = uniqueIds.filter(id=>{
+      const card=(p.hand || []).find(c=>c && String(c.id)===id);
+      return !!card && !card.joker;
+    });
+
+    // 二重送信や古い画面からの送信で、同じIDが重複したり既に存在しないIDが
+    // 混ざっても splice(-1) で別カードを抜かない。合法な3枚へ安全に補正する。
     if(ids.length !== 3){
-      room.message = '3枚パスの選択が足りないプレイヤーがいます。';
-      broadcast(room);
-      return;
-    }
-    const cards = [];
-    for(const id of ids){
-      const idx = p.hand.findIndex(c=>c && c.id === id);
-      if(idx < 0){
-        room.message = 'パスするカードが手札に見つからないため、状態を再送しました。';
+      ids = passableCardIds(p).slice(0,3);
+      if(ids.length !== 3){
+        room.message = `${p.name} のパス可能なカードが3枚未満のため、3枚パスを安全に中断しました。`;
+        log(room, `⚠️ ${p.name} の3枚パス選択を復旧できませんでした。`);
         broadcast(room);
         return;
       }
-      const card = p.hand[idx];
-      if(card.joker){
-        room.message = 'ババブタはパスできません。';
-        broadcast(room);
-        return;
-      }
-      cards.push(card);
+      room.passSelections[i]=ids;
+      log(room, `⚠️ ${p.name} の3枚パス選択に重複または不正IDがあったため、合法な3枚へ自動補正しました。`);
     }
     transfers.push({from:i, to:passTargetPid(i), ids:[...ids]});
   }
@@ -2338,11 +2358,27 @@ function finishPassThreePhase(room){
     const fromP = room.players[t.from];
     const cards = [];
     for(const id of t.ids){
-      const idx = fromP.hand.findIndex(c=>c && c.id === id);
-      cards.push(fromP.hand.splice(idx,1)[0]);
+      const idx = fromP.hand.findIndex(c=>c && String(c.id)===String(id));
+      if(idx < 0) continue;
+      const [card] = fromP.hand.splice(idx,1);
+      if(card) cards.push(card);
     }
     return {...t, cards};
   });
+
+  if(moved.some(t=>t.cards.length!==3)){
+    // ここへ到達するのは同時処理中に状態が壊れた場合だけ。抜いた札を戻して停止を防ぐ。
+    for(const t of moved){
+      room.players[t.from].hand.push(...t.cards);
+      sortHand(room.players[t.from].hand);
+    }
+    room.message='3枚パス中に手札が更新されたため、選択をやり直してください。';
+    room.passDone=[];
+    room.passSelections={};
+    log(room,'⚠️ 3枚パス中の手札更新を検知し、抜いたカードを元へ戻しました。');
+    broadcast(room);
+    return;
+  }
 
   // 次の手番の人へ渡す。
   for(const t of moved){
@@ -2375,10 +2411,11 @@ function maybeFinishPassPhase(room){
   if(Date.now() - Number(room.setupPhaseStartedAt || Date.now()) > 30000){
     for(let i=0;i<room.players.length;i++){
       const p=room.players[i];
-      if(p.cpu || isPlayerConnectedForProgress(p) || (room.passDone || []).includes(i)) continue;
+      if(p.cpu || (room.passDone || []).includes(i)) continue;
       const ids=shuffle(passableCardIds(p).slice()).slice(0,3);
       if(ids.length===3){
-        log(room, `⚠️ ${p.name} が切断中のため、3枚パスをランダム選択して進行を復旧しました。`);
+        const cause=isPlayerConnectedForProgress(p) ? '操作がなかった' : '切断中だった';
+        log(room, `⚠️ ${p.name} は30秒間${cause}ため、3枚パスをランダム選択して進行を復旧しました。`);
         submitPassThree(room, p.id, ids, true);
       }
     }
@@ -2504,9 +2541,10 @@ function maybeFinishInitialPairPhase(room){
   if(Date.now() - Number(room.setupPhaseStartedAt || Date.now()) > 30000){
     for(let i=0;i<room.players.length;i++){
       const p=room.players[i];
-      if(p.cpu || isPlayerConnectedForProgress(p) || (room.initialPairDone || []).includes(i) || !hasInitialPairCandidate(p)) continue;
+      if(p.cpu || (room.initialPairDone || []).includes(i) || !hasInitialPairCandidate(p)) continue;
       markInitialPairDone(room, i);
-      log(room, `⚠️ ${p.name} が切断中のため、開始時ペア捨てをスキップして進行を復旧しました。`);
+      const cause=isPlayerConnectedForProgress(p) ? '操作がなかった' : '切断中だった';
+      log(room, `⚠️ ${p.name} は30秒間${cause}ため、開始時ペア捨てをスキップして進行を復旧しました。`);
     }
   }
   if(allInitialPairDone(room)) beginPlayingAfterInitialPairs(room);
@@ -2603,41 +2641,105 @@ function playCard(room, playerId, cardId){
   broadcast(room);
 }
 
-function judgeWeakestCard(room, leadSuit){
-  if(!room.trick || !room.trick.length) return null;
-
-  // 最弱判定では、リードスートを非リードスートより強い扱いにする。
-  // 非リードスートが1枚でも出ていれば、非リードスートの中で一番低い数字が最弱。
-  // 全員がフォローしている場合は、場の4枚の中で一番低い数字が最弱。
-  // 同じ数字なら、後に出したカードが最弱。
-  const offSuit = room.trick.filter(x=>x.card && x.card.suit !== leadSuit);
-  const candidates = offSuit.length ? offSuit : room.trick;
-
-  return candidates.slice().sort((a,b)=>{
-    if(a.card.val !== b.card.val) return a.card.val - b.card.val;
-    return b.order - a.order;
-  })[0];
+function validTrickEntry(room, entry){
+  return !!entry
+    && Number.isInteger(entry.pid)
+    && entry.pid >= 0
+    && entry.pid < (room?.players?.length || 0)
+    && !!entry.card
+    && !entry.card.joker
+    && suits.includes(entry.card.suit)
+    && Number.isFinite(Number(entry.card.val));
 }
 
+function restoreTrickCardsToOwners(room, entries){
+  if(!room || !Array.isArray(entries)) return 0;
+  const active=collectActiveFaceKeys(room);
+  let restored=0;
+  for(const entry of entries){
+    if(!entry?.card || !Number.isInteger(entry.pid)) continue;
+    const owner=room.players?.[entry.pid];
+    if(!owner || !Array.isArray(owner.hand)) continue;
+    const key=cardFaceKey(entry.card);
+    if(key==='NULL' || active.has(key)) continue;
+    owner.hand.push(entry.card);
+    active.add(key);
+    restored++;
+  }
+  room.players?.forEach(p=>sortHand(p.hand));
+  return restored;
+}
+
+function cancelCorruptTrick(room, entries, reason){
+  room.trick=[];
+  const restored=restoreTrickCardsToOwners(room, entries);
+  room.leadSuit=null;
+  room.current=Number.isInteger(room.lead) && room.players?.[room.lead] ? room.lead : 0;
+  room.trickReview=null;
+  room.pendingPick=null;
+  room.message='場札の状態を安全に復旧し、リードからやり直します。';
+  log(room, `⚠️ ${reason}。有効な場札${restored}枚を持ち主へ戻し、トリックをやり直します。`);
+}
+
+function judgeWeakestCard(room, leadSuit, trickEntries=null){
+  const valid=(Array.isArray(trickEntries) ? trickEntries : room?.trick || [])
+    .filter(x=>validTrickEntry(room,x));
+  if(!valid.length || !suits.includes(leadSuit)) return null;
+
+  // 非リードスートが1枚でもあれば、その中の最小値。同値は後出しが最弱。
+  // 全員フォローなら場全体の最小値。同値処理は防御分岐として維持する。
+  const offSuit = valid.filter(x=>x.card.suit !== leadSuit);
+  const candidates = offSuit.length ? offSuit : valid;
+
+  return candidates.slice().sort((a,b)=>{
+    const av=Number(a.card.val), bv=Number(b.card.val);
+    if(av !== bv) return av - bv;
+    return Number(b.order ?? 0) - Number(a.order ?? 0);
+  })[0] || null;
+}
 
 function resolveTrick(room){
   if(!room.trick || room.trick.length < 4){
     log(room, '⚠️ トリック解決に必要な4枚が揃っていないため、処理を中断しました。');
-    return;
+    return false;
   }
-  if(room.trick.length > 4) room.trick = room.trick.slice(0,4);
-  const leadSuit = room.leadSuit || room.trick[0]?.card?.suit;
-  room.leadSuit = leadSuit;
-  const winner = room.trick.filter(x=>x.card.suit===leadSuit).sort((a,b)=>b.card.val-a.card.val)[0];
-  if(!winner){
-    log(room, '⚠️ 勝者を判定できなかったため、リードプレイヤーを勝者として復旧しました。');
-    return;
+
+  // 5枚目以降は消さず、必ず持ち主へ戻す。
+  if(room.trick.length > 4){
+    const extras=room.trick.splice(4);
+    const restored=restoreTrickCardsToOwners(room, extras);
+    log(room, `⚠️ 場に余分な${extras.length}枚があったため、${restored}枚を持ち主の手札へ戻して先頭4枚で復旧しました。`);
   }
-  let weakest = judgeWeakestCard(room, leadSuit);
-  if(!weakest){
-    log(room, '⚠️ 最弱を判定できなかったため、リードカードを最弱として復旧しました。');
-    weakest = room.trick[0];
+
+  const core=room.trick.slice(0,4);
+  const valid=core.filter(x=>validTrickEntry(room,x));
+  const distinctPids=new Set(valid.map(x=>x.pid));
+  const distinctCards=new Set(valid.map(x=>cardFaceKey(x.card)));
+  if(valid.length!==4 || distinctPids.size!==4 || distinctCards.size!==4){
+    cancelCorruptTrick(room, core, '場札に無効カード・同一プレイヤーの重複・カード重複を検知しました');
+    broadcast(room);
+    return false;
   }
+
+  // 実際に最初に置かれたカードを正とする。保存中のleadSuitが有効文字列でも
+  // 場札と食い違う場合は、そのまま使うと勝者が誤るため復元する。
+  const leadEntry=core.slice().sort((a,b)=>Number(a.order ?? 0)-Number(b.order ?? 0))[0] || core[0];
+  const leadSuit=leadEntry.card.suit;
+  if(room.leadSuit !== leadSuit){
+    log(room, `⚠️ リードスート情報を場の先頭カード（${suitName(leadSuit)}）から復元しました。`);
+  }
+  room.leadSuit=leadSuit;
+
+  const winner=core
+    .filter(x=>x.card.suit===leadSuit)
+    .sort((a,b)=>Number(b.card.val)-Number(a.card.val))[0] || null;
+  const weakest=judgeWeakestCard(room, leadSuit, core);
+  if(!winner || !weakest || !room.players[winner.pid] || !room.players[weakest.pid]){
+    cancelCorruptTrick(room, core, '勝者または最弱を確定できませんでした');
+    broadcast(room);
+    return false;
+  }
+
   const wp = room.players[winner.pid], lp = room.players[weakest.pid];
 
   // トリックの最終盤面を見せるため、ここではまだピック画面に遷移しない。
@@ -2662,8 +2764,8 @@ function resolveTrick(room){
     const line = cpuStrategyLineFor(room, wi, 'watchDrama', {winner:wp.name, weakest:lp.name, target:lp.name});
     if(line) say(room, wi, line, {eventKey:'watch'});
   }
-  wp.scorePile.push(...room.trick.map(x=>x.card));
-  const capturedMadPig = room.madPigEnabled !== false ? room.trick.map(x=>x.card).find(isMadPig) : null;
+  wp.scorePile.push(...core.map(x=>x.card));
+  const capturedMadPig = room.madPigEnabled !== false ? core.map(x=>x.card).find(isMadPig) : null;
   if(capturedMadPig) registerMadPigEvent(room, winner.pid, capturedMadPig, 'trick');
   log(room, `👑 ${wp.name} が勝利。場の4枚をごちそう山へ。`);
   log(room, `💀 最弱は ${lp.name}（${cardText(weakest.card)}）。`);
@@ -2671,6 +2773,7 @@ function resolveTrick(room){
 
   const reviewToken = reviewUntil;
   ensureReviewToPick(room, reviewToken, winner.pid, weakest.pid);
+  return true;
 }
 
 
@@ -2892,6 +2995,12 @@ function finishAfterPick(room, winnerPid){
   room.trick=[]; room.leadSuit=null;
   if(!Number.isInteger(winnerPid) || winnerPid < 0 || winnerPid >= room.players.length) winnerPid = room.lead ?? 0;
   room.lead=winnerPid; room.current=winnerPid;
+  // ババブタ1枚だけは『次の手番開始時』に終了。手番設定直後に判定して、
+  // 出せるカード0枚の手番が一瞬表示される状態を防ぐ。
+  if(checkRoundEnd(room, winnerPid)){
+    broadcast(room);
+    return;
+  }
   room.message = `${room.players[winnerPid].name} が次のリードです。`;
   broadcast(room);
 }
@@ -3060,7 +3169,9 @@ function beginRound2(room){
 
 
 function activeTrickInProgress(room){
-  return !!(room && room.phase === 'playing' && !room.pendingPick && !room.trickReview && room.trick && room.trick.length > 0 && room.trick.length < 4);
+  // 4枚出揃った直後や、異常に5枚以上となった復旧待ちも「トリック処理中」。
+  // ここで手札0を即終了させると、場札を得点へ移す前にラウンドが終わりカードが失われる。
+  return !!(room && room.phase === 'playing' && !room.pendingPick && !room.trickReview && room.trick && room.trick.length > 0);
 }
 
 
@@ -3239,6 +3350,7 @@ wss.on('connection', (ws) => {
       p.ws = null;
       p.disconnectedAt = Date.now();
       log(room, `${p.name} が切断しました。再接続待ちです。`);
+      ensureLobbyHost(room);
       broadcast(room);
     }
     if(room.players.every(p=>p.cpu || !isOpenWs(p.ws))) scheduleRoomCleanup(room);
