@@ -6628,6 +6628,35 @@ body.gameplay-mode.modern-game-ui .game-screen.is-setup-mode .hand-dock .hand.se
   }
 }
 
+
+
+/* --- v14: PC commentary safe inset + reconnect/round-deal UI polish --- */
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer{
+  left:auto!important;
+  right:max(14px,env(safe-area-inset-right))!important;
+  max-width:calc(100% - 32px)!important;
+  padding:3px 2px 3px 4px!important;
+  overflow:visible!important;
+}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .table-commentary,
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .table-commentary-list{
+  width:100%!important;
+  min-width:0!important;
+  overflow:visible!important;
+}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .speech-bubble{
+  width:calc(100% - 3px)!important;
+  margin-left:3px!important;
+  overflow:visible!important;
+}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .speech-body{
+  overflow:hidden!important;
+  padding-left:1px!important;
+}
+body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .commentary-avatar{
+  display:block!important;
+  flex:none!important;
+}
 </style>
 </head>
 <body class="modern-game-ui">
@@ -6672,7 +6701,7 @@ body.gameplay-mode.modern-game-ui .game-screen.is-setup-mode .hand-dock .hand.se
       <summary class="advanced-settings-summary">⚙️ 詳細ルールをカスタマイズ <span class="small">プリセットから一項目ずつ変更できます</span></summary>
       <div class="advanced-settings-hint">変更内容に合わせて、すぐ下の「試合傾向」がリアルタイムに更新されます。</div>
       <div class="rules-default-note">
-        <b>標準設定</b>：3ラウンド / 🍎リンゴ・🌽トウモロコシ・🥬キャベツは-3点・通常の💧は-6点 / マッド固有-13点 / ババブタ-20点・ラウンド毎 / ピック対象2枚 / 3枚パスなし / 開始時ペア捨てなし / シュートON（両方とも手札・各自1回）
+        <b>標準設定</b>：3ラウンド / ラウンド終了ごとに全カードを回収してシャッフル / 🍎リンゴ・🌽トウモロコシ・🥬キャベツは-3点・通常の💧は-6点 / マッド固有-13点 / ババブタ-20点・ラウンド毎 / ピック対象2枚 / 3枚パスなし / 開始時ペア捨てなし / シュートON（両方とも手札・各自1回）
       </div>
       <div class="suit-flavor-map" aria-label="ピピトリの4スート">
         <span class="suit-flavor apple"><i aria-hidden="true">🍎</i><b>リンゴ</b><small>赤色スート</small></span>
@@ -6690,6 +6719,7 @@ body.gameplay-mode.modern-game-ui .game-screen.is-setup-mode .hand-dock .hand.se
           <p>ゲームの長さと、残った手札の失点方法を決めます。</p>
           <div class="settings-grid compact-grid">
             <label class="input-label"><span class="rule-title"><span>ラウンド数</span><button type="button" class="rule-help-btn" data-help-rule="rounds" aria-label="ラウンド数のヘルプ">?</button></span><select id="rounds" class="input"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select><em>標準は3ラウンド</em></label>
+            <label class="input-label option-toggle"><span class="rule-title"><span>次ラウンドの配り方</span><button type="button" class="rule-help-btn" data-help-rule="roundDealMode" aria-label="次ラウンドの配り方のヘルプ">?</button></span><select id="roundDealMode" class="input"><option value="reshuffle" selected>全カードを回収してシャッフル</option><option value="carryOver">残りカードを持ち越して補充</option></select><em>標準は毎ラウンド全シャッフル</em></label>
             <label class="input-label option-toggle"><span class="rule-title"><span>残り手札の失点</span><button type="button" class="rule-help-btn" data-help-rule="penaltyMode" aria-label="残り手札の失点のヘルプ">?</button></span><select id="penaltyMode" class="input"><option value="mud6" selected>リンゴ・トウモロコシ・キャベツは-3点、通常の💧は-6点</option><option value="flat3">全スート1枚ごとに-3点</option><option value="faceValue">数字分だけ失点</option><option value="mudSuit">1枚ごとに-1点、💧スートは-3点</option></select><em>標準は💧-6点・他-3点</em></label>
           </div>
         </section>
@@ -7059,6 +7089,8 @@ let intentionalClose=false;
 let reconnectBlockedElsewhere=false;
 let resumeToken='';
 let lastServerActivityAt=0;
+let lastVisibilityResumeAt=0;
+let visibilityProbeTimer=null;
 let socketGeneration=0;
 let reconnectInFlight=false;
 
@@ -7092,6 +7124,23 @@ function loadReconnectInfo(){
   }catch(e){ return null; }
 }
 
+function deactivateReconnectInfo(){
+  try{
+    const data=loadReconnectInfo();
+    if(data){
+      data.active=false;
+      data.savedAt=Date.now();
+      localStorage.setItem(RECONNECT_KEY, JSON.stringify(data));
+      localStorage.removeItem(LEGACY_RECONNECT_KEY);
+    }
+  }catch(e){}
+  updateReconnectButton();
+}
+
+function isTerminalReconnectError(message){
+  return /部屋が見つかりません|復帰できる席が見つかりません|復帰情報.*必要/.test(String(message || ''));
+}
+
 function updateReconnectButton(){
   const btn=document.getElementById('reconnect');
   if(!btn) return;
@@ -7121,8 +7170,11 @@ function showConnectionRecovery(title, text, mode='reconnecting'){
   panel.dataset.mode=mode;
   const titleEl=document.getElementById('recoveryTitle');
   const textEl=document.getElementById('recoveryText');
+  const retry=panel.querySelector('[data-reconnect-now]');
   if(titleEl) titleEl.textContent=title;
   if(textEl) textEl.textContent=text;
+  // 失効済みの部屋へ無限再試行するボタンは表示しない。
+  if(retry) retry.hidden = mode === 'expired';
 }
 
 function hideConnectionRecovery(){
@@ -7130,8 +7182,30 @@ function hideConnectionRecovery(){
   if(panel) panel.hidden=true;
 }
 
+function stopVisibilityProbe(){
+  if(visibilityProbeTimer){ clearTimeout(visibilityProbeTimer); visibilityProbeTimer=null; }
+}
+function probeSocketAfterVisibility(reason='visible'){
+  if(!ws || ws.readyState!==WebSocket.OPEN) return false;
+  stopVisibilityProbe();
+  const socket=ws;
+  const generation=socketGeneration;
+  const probeAt=Date.now();
+  lastVisibilityResumeAt=probeAt;
+  try{ socket.send(JSON.stringify({type:'ping',at:probeAt,reason})); }catch(e){ return false; }
+  visibilityProbeTimer=setTimeout(()=>{
+    visibilityProbeTimer=null;
+    if(socket!==ws || generation!==socketGeneration || socket.readyState!==WebSocket.OPEN) return;
+    if(lastServerActivityAt < probeAt){
+      showConnectionRecovery('通信を再確認します','画面復帰後にサーバー応答がないため、同じ席へ接続し直します。','retry');
+      try{ socket.close(4001,'visibility probe timeout'); }catch(e){}
+    }
+  },15000);
+  return true;
+}
 function stopSocketHealth(){
   if(heartbeatTimer){ clearInterval(heartbeatTimer); heartbeatTimer=null; }
+  stopVisibilityProbe();
 }
 
 function startSocketHealth(socket, generation){
@@ -7142,12 +7216,17 @@ function startSocketHealth(socket, generation){
       stopSocketHealth();
       return;
     }
-    if(Date.now() - lastServerActivityAt > 35000){
+    // バックグラウンド中はiOS/Safariがタイマーを長時間停止するため、
+    // 古い時刻だけを理由に正常な接続を閉じない。復帰後はまずpingで確認する。
+    if(document.visibilityState === 'hidden') return;
+    const now=Date.now();
+    const resumeGrace = now - lastVisibilityResumeAt < 25000;
+    if(!resumeGrace && now - lastServerActivityAt > 70000){
       try{ socket.close(4001, 'heartbeat timeout'); }catch(e){}
       return;
     }
-    try{ socket.send(JSON.stringify({type:'ping', at:Date.now()})); }catch(e){}
-  }, 10000);
+    try{ socket.send(JSON.stringify({type:'ping', at:now})); }catch(e){}
+  }, 15000);
 }
 
 function stopReconnectLoop(resetAttempts=true){
@@ -7315,6 +7394,15 @@ const RULE_HELP_TEXTS = {
       '多いほど実力差・手札管理・ババブタの押し付けが効きやすくなります。'
     ]
   },
+  roundDealMode:{
+    title:'次ラウンドの配り方',
+    body:[
+      '標準は「全カードを回収してシャッフル」です。ラウンド終了時に得点を確定し、手札・ごちそう山・ペア浄化済みカードをすべて回収して、新しい13枚を配ります。',
+      '「残りカードを持ち越して補充」は旧ルール互換です。残り手札、ごちそう山、ペア浄化済みカードを保持し、手札だけ13枚まで通常カードで補充します。',
+      'どちらを選んでも、ラウンドごとの得点、ババブタ失点、シュート失点はゲーム終了まで正しく累計されます。',
+      '開始時3枚パスと開始時ペア捨ては、ゲーム開始時の第1ラウンドだけ実施します。'
+    ]
+  },
   penaltyMode:{
     title:'残り手札の失点',
     body:[
@@ -7392,19 +7480,19 @@ const RULE_HELP_TEXTS = {
 const RULE_PRESETS = {
   standard:{
     label:'スタンダード', description:'運と戦略のバランスが良い標準ルールです。',
-    values:{rounds:'3',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-20',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'2',passThreeEnabled:'false',initialPairDiscardEnabled:'false'}
+    values:{rounds:'3',roundDealMode:'reshuffle',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-20',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'2',passThreeEnabled:'false',initialPairDiscardEnabled:'false'}
   },
   quick:{
     label:'クイック', description:'1ラウンドで決着。ルールを覚える練習や短時間プレイ向けです。',
-    values:{rounds:'1',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-20',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'2',passThreeEnabled:'false',initialPairDiscardEnabled:'false'}
+    values:{rounds:'1',roundDealMode:'reshuffle',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-20',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'2',passThreeEnabled:'false',initialPairDiscardEnabled:'false'}
   },
   dramatic:{
     label:'ドラマチック', description:'重いババブタと広いピック候補で、事故・逆転・歓声が増える設定です。',
-    values:{rounds:'3',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-30',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'6',passThreeEnabled:'false',initialPairDiscardEnabled:'false'}
+    values:{rounds:'3',roundDealMode:'reshuffle',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-30',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'6',passThreeEnabled:'false',initialPairDiscardEnabled:'false'}
   },
   strategic:{
     label:'ストラテジー', description:'💧スート管理、3枚パス、開始ペアを使う長期の読み合いです。',
-    values:{rounds:'5',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-20',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'2',passThreeEnabled:'true',initialPairDiscardEnabled:'true'}
+    values:{rounds:'5',roundDealMode:'reshuffle',penaltyMode:'mud6',madPigEnabled:'true',jokerPenalty:'-20',jokerPenaltyTiming:'perRound',shootThePigEnabled:'true',pickTargetCount:'2',passThreeEnabled:'true',initialPairDiscardEnabled:'true'}
   }
 };
 
@@ -7455,6 +7543,7 @@ function setupRulePresets(){
 function readRuleSelectionForTrend(){
   return {
     rounds:Number($('rounds')?.value || 3),
+    roundDealMode:$('roundDealMode')?.value || 'reshuffle',
     penaltyMode:$('penaltyMode')?.value || 'mud6',
     madPig:$('madPigEnabled')?.value === 'true',
     jokerPenalty:Math.abs(Number($('jokerPenalty')?.value || -20)),
@@ -7476,6 +7565,14 @@ function buildMatchTrendDescription(cfg){
   if(cfg.rounds <= 2){ tags.push('短期決戦'); chaos += 2; points.push('ラウンド数が少ないため、序盤のピック事故やババブタの移動が勝敗に直結しやすいです。'); }
   else if(cfg.rounds >= 5){ tags.push('長期戦'); strategy += 2; points.push('ラウンド数が多く、手札管理と危険札の処理がじわじわ効く展開になります。'); }
   else { tags.push('標準テンポ'); points.push('3ラウンド中心の標準テンポです。運と戦略のバランスが取りやすい設定です。'); }
+
+  if(cfg.roundDealMode === 'carryOver'){
+    tags.push('カード持ち越し'); strategy += 2;
+    points.push('前ラウンドの残り手札・ごちそう山・ペアを持ち越します。長期的な手札管理と危険札の所在が重要です。');
+  } else {
+    tags.push('毎R全シャッフル'); chaos += 1;
+    points.push('各ラウンド終了後に全カードを回収して配り直します。ラウンドごとに公平な新しい手札で再スタートします。');
+  }
 
   if(cfg.penaltyMode === 'faceValue'){ tags.push('高数字が危険'); strategy += 2; pressure += 1; points.push('数字分失点なので、高い数字を残すほど重くなります。高札の処理判断が重要です。'); }
   else if(cfg.penaltyMode === 'mud6'){ tags.push('💧重点管理'); strategy += 2; pressure += 2; points.push('標準の💧-6/他-3です。通常の💧は他スートの2倍重く、トリックで処理する判断が重要です。マッドは固有-13点で重複しません。'); }
@@ -7564,7 +7661,7 @@ function closeRuleHelp(ev=null){
 
 
 function setupRuleSelectionHelpers(){
-  const ids = ['rounds','penaltyMode','madPigEnabled','jokerPenalty','jokerPenaltyTiming','shootThePigEnabled','pickTargetCount','passThreeEnabled','initialPairDiscardEnabled'];
+  const ids = ['rounds','roundDealMode','penaltyMode','madPigEnabled','jokerPenalty','jokerPenaltyTiming','shootThePigEnabled','pickTargetCount','passThreeEnabled','initialPairDiscardEnabled'];
   ids.forEach(id=>{
     const el = $(id);
     if(!el || el.dataset.trendBound === '1') return;
@@ -7657,7 +7754,7 @@ $('create').onclick=()=>{
   reconnectBlockedElsewhere=false;
   pendingConnectIntent='create';
   setCreateButtonState('creating');
-  connect(()=>send({type:'create', name:$('name').value, rounds:Number($('rounds').value || 3), madPigEnabled:$('madPigEnabled').value==='true', shootThePigEnabled:$('shootThePigEnabled').value==='true', jokerPenalty:Number($('jokerPenalty').value || -20), jokerPenaltyTiming:$('jokerPenaltyTiming').value, initialPairDiscardEnabled:$('initialPairDiscardEnabled').value==='true', passThreeEnabled:$('passThreeEnabled').value==='true', penaltyMode:$('penaltyMode').value, pickTargetCount:Number($('pickTargetCount').value || 2)}));
+  connect(()=>send({type:'create', name:$('name').value, rounds:Number($('rounds').value || 3), roundDealMode:$('roundDealMode').value || 'reshuffle', madPigEnabled:$('madPigEnabled').value==='true', shootThePigEnabled:$('shootThePigEnabled').value==='true', jokerPenalty:Number($('jokerPenalty').value || -20), jokerPenaltyTiming:$('jokerPenaltyTiming').value, initialPairDiscardEnabled:$('initialPairDiscardEnabled').value==='true', passThreeEnabled:$('passThreeEnabled').value==='true', penaltyMode:$('penaltyMode').value, pickTargetCount:Number($('pickTargetCount').value || 2)}));
 };
 $('join').onclick=()=>{
   setCreateButtonState('idle', '部屋コードで参加します。');
@@ -7728,11 +7825,12 @@ window.addEventListener('offline', ()=>{
 });
 window.addEventListener('pageshow', ()=>{
   const data=loadReconnectInfo();
-  if(!reconnectBlockedElsewhere && data?.active && (!ws || ws.readyState>WebSocket.OPEN)) scheduleReconnect(true);
+  if(!probeSocketAfterVisibility('pageshow') && !reconnectBlockedElsewhere && data?.active) scheduleReconnect(true);
 });
 document.addEventListener('visibilitychange', ()=>{
   const data=loadReconnectInfo();
-  if(!reconnectBlockedElsewhere && document.visibilityState==='visible' && data?.active && (!ws || ws.readyState>WebSocket.OPEN)) scheduleReconnect(true);
+  if(document.visibilityState!=='visible') return;
+  if(!probeSocketAfterVisibility('visible') && !reconnectBlockedElsewhere && data?.active) scheduleReconnect(true);
 });
 
 // Edge/PCブラウザ対策：インラインonclickではなくイベント委任でピックする。
@@ -7995,7 +8093,7 @@ function connect(after, isReconnect=false){
       pendingConnectIntent='idle';
       hypeToast('⚠️ サーバー応答がありません。もう一度お試しください。','danger');
     }
-  }, 10000);
+  }, 15000);
   socket.onopen=()=>{
     if(socket !== ws || generation !== socketGeneration) return;
     if(socketOpenTimer){ clearTimeout(socketOpenTimer); socketOpenTimer=null; }
@@ -8011,12 +8109,13 @@ function connect(after, isReconnect=false){
           showConnectionRecovery('復帰を再試行します', 'サーバーの応答を確認できないため、接続し直します。', 'retry');
           try{ socket.close(4001, 'reconnect handshake timeout'); }catch(e){}
         }
-      }, 8000);
+      }, 12000);
     }
   };
   socket.onmessage=e=>{
     if(socket !== ws || generation !== socketGeneration) return;
     lastServerActivityAt=Date.now();
+    stopVisibilityProbe();
     let msg;
     try{ msg=JSON.parse(e.data); }catch(err){ return; }
     if(msg.type==='pong') return;
@@ -8070,9 +8169,19 @@ function connect(after, isReconnect=false){
       setConnStatus('要確認');
       if($('create')?.classList.contains('is-creating')) setCreateButtonState('error', msg.message || '部屋作成に失敗しました。');
       if(reconnectInFlight){
-        showConnectionRecovery('まだ復帰できません', `${msg.message || '復帰先を確認できません。'} 自動で再試行します。`, 'retry');
+        const reconnectError=msg.message || '復帰先を確認できません。';
         reconnectInFlight=false;
-        try{ socket.close(4001, 'reconnect rejected'); }catch(e){}
+        if(isTerminalReconnectError(reconnectError)){
+          // Render再起動や部屋期限切れなど、同じ情報では復帰できない状態。
+          // 自動再試行を止め、現在のソケットはロビー操作に再利用する。
+          stopReconnectLoop();
+          deactivateReconnectInfo();
+          setConnStatus('復帰不可');
+          showConnectionRecovery('前回の部屋へ復帰できません', `${reconnectError} 新しく部屋を作るか、部屋コードで参加してください。`, 'expired');
+        } else {
+          showConnectionRecovery('まだ復帰できません', `${reconnectError} 自動で再試行します。`, 'retry');
+          try{ socket.close(4001, 'reconnect rejected'); }catch(e){}
+        }
       } else {
         const errorText=msg.message || '操作を完了できませんでした。';
         if(document.body.classList.contains('gameplay-mode') && $('message')) $('message').textContent=errorText;
@@ -8147,6 +8256,9 @@ function relativeSeatPosition(pid){
 
 
 
+function roundDealModeLabel(){
+  return state?.roundDealMode === 'carryOver' ? 'カード持ち越し' : '毎R全シャッフル';
+}
 function penaltyModeLabel(){
   if(state?.penaltyMode === 'faceValue') return '数字分失点';
   if(state?.penaltyMode === 'mud6') return '💧-6/他-3';
@@ -8181,7 +8293,7 @@ function jokerPenaltyLabel(){
 }
 function compactOptionChips(){
   if(!state) return [];
-  const chips = [`${state.totalRounds || 3}R`, penaltyModeLabel(), jokerPenaltyLabel(), pickTargetModeLabel()];
+  const chips = [`${state.totalRounds || 3}R`, roundDealModeLabel(), penaltyModeLabel(), jokerPenaltyLabel(), pickTargetModeLabel()];
   if(state.madPigEnabled === false) chips.push('マッドなし');
   if(state.shootThePigEnabled) chips.push('シュート各自1回');
   if(state.passThreeEnabled) chips.push('3枚パス');
@@ -8220,6 +8332,7 @@ function renderSelectedRuleSummary(){
     : 'OFF';
   const cards=[
     ['ラウンド', `${rounds}ラウンド`],
+    ['次ラウンドの配り方', state.roundDealMode==='carryOver' ? '残り手札・ごちそう山・ペアを持ち越し、手札を13枚まで補充' : '全カードを回収してシャッフルし、新しい13枚を配る（標準）'],
     ['手札の失点', selectedPenaltyRuleText()],
     ['ババブタ', `-${Number(state.jokerPenalty ?? 20)}点・${jokerTiming}`],
     ['マッド・ピッグ', madText],
@@ -8685,25 +8798,26 @@ function renderRoundModal(){
   const rows = (sum.rows||[]).map(r=>`
     <div class="round-card ${r.pid===sum.reasonPid?'highlight':''}">
       <div class="name">${r.pid===sum.reasonPid?'🏁 ':''}${esc(r.name)}</div>
-      <div class="stat"><span>ごちそう山</span><b>${r.pile}枚</b></div>
+      <div class="stat"><span>${sum.roundDealMode==='reshuffle'?'今Rごちそう山':'ごちそう山（持越）'}</span><b>${r.pile}枚</b></div>
       <div class="stat"><span>残り手札（ババ除く）</span><b>${r.normalHand}枚</b></div>
       <div class="stat"><span>ペア浄化</span><b>${r.pairs}組</b></div>
       <div class="stat"><span>マッド・ピッグ</span><b>${sum.madPigEnabled === false ? "なし" : `${r.madPig}枚`}</b></div>
       <div class="stat"><span>ごちそう点</span><b>+${r.pileScore ?? r.pile}</b></div>
-      <div class="stat"><span>手札失点</span><b>${Number.isFinite(Number(r.handPenalty)) ? `-${r.handPenalty}` : "—"}</b></div>
-      <div class="stat"><span>マッド・ピッグ失点</span><b>${sum.madPigEnabled === false ? "なし" : (Number.isFinite(Number(r.madPigPenalty)) ? `-${r.madPigPenalty}` : "—")}</b></div>
+      <div class="stat"><span>手札失点</span><b>${penaltyDisplay(r.handPenalty)}</b></div>
+      <div class="stat"><span>マッド・ピッグ失点</span><b>${sum.madPigEnabled === false ? "なし" : penaltyDisplay(r.madPigPenalty)}</b></div>
       ${r.shootThePig ? `<div class="stat shoot-pig-stat"><span>シュート・ザ・ピッグ</span><b>発動・使用済み</b></div>` : (r.shootPigMadPigWaived ? `<div class="stat shoot-pig-stat"><span>シュート成功済み</span><b>マッド失点0</b></div>` : '')}
-      ${r.shootPigPenalty ? `<div class="stat"><span>シュート失点</span><b>-${r.shootPigPenalty}</b></div>` : ''}
-      <div class="stat"><span>${sum.jokerPenaltyTiming==='gameEnd' ? 'ババブタ失点' : '今回のババブタ失点'}</span><b>${sum.jokerPenaltyTiming==='gameEnd' ? '最終のみ' : `-${r.jokerPenalty ?? 0}`}</b></div>
-      ${sum.jokerPenaltyTiming==='perRound' ? `<div class="stat"><span>ババブタ累計</span><b>-${r.jokerPenaltyTotal ?? 0}</b></div>` : (r.hasJoker ? `<div class="stat"><span>最終時なら</span><b>-${r.pendingFinalJokerPenalty ?? (state.jokerPenalty ?? 20)}</b></div>` : '')}
-      <div class="round-total">暫定得点：${Number.isFinite(Number(r.total)) ? r.total : "—"} 点</div>
+      ${Number(r.shootPigPenalty)>0 ? `<div class="stat"><span>シュート失点</span><b>${penaltyDisplay(r.shootPigPenalty)}</b></div>` : ''}
+      ${sum.roundDealMode==='reshuffle' ? `<div class="stat"><span>過去ラウンドのカード得点</span><b>${signedDisplay(r.completedRoundCardScore||0)}</b></div><div class="stat"><span>今回のカード得点</span><b>${signedDisplay(r.currentRoundCardScore||0)}</b></div>` : ''}
+      <div class="stat"><span>${sum.jokerPenaltyTiming==='gameEnd' ? 'ババブタ失点' : '今回のババブタ失点'}</span><b>${sum.jokerPenaltyTiming==='gameEnd' ? '最終のみ' : penaltyDisplay(r.jokerPenalty ?? 0)}</b></div>
+      ${sum.jokerPenaltyTiming==='perRound' ? `<div class="stat"><span>ババブタ累計</span><b>${penaltyDisplay(r.jokerPenaltyTotal ?? 0)}</b></div>` : (r.hasJoker ? `<div class="stat"><span>最終時なら</span><b>${penaltyDisplay(r.pendingFinalJokerPenalty ?? (state.jokerPenalty ?? 20))}</b></div>` : '')}
+      <div class="round-total">累計暫定得点：${Number.isFinite(Number(r.total)) ? r.total : "—"} 点</div>
       ${r.hasJoker?'<span class="round-danger">🃏 ババブタ保持</span>':''}
     </div>
   `).join('');
 
   const modalHtml = `<div class="round-modal">
     <div class="round-panel">
-      <h2>🐷 第${sum.round}ラウンド結果</h2><p class="small" style="text-align:center;margin-top:-4px">ここではこのラウンド終了時点の暫定得点を表示します。ババブタ失点：${sum.jokerPenaltyTiming==='gameEnd'?'ゲームの最後のみ':'ラウンド毎'}</p>
+      <h2>🐷 第${sum.round}ラウンド結果</h2><p class="small" style="text-align:center;margin-top:-4px">ここではこのラウンド終了時点の累計得点を表示します。次ラウンド：${sum.roundDealMode==='carryOver'?'残りカードを持ち越して補充':'全カードを回収してシャッフル'}／ババブタ失点：${sum.jokerPenaltyTiming==='gameEnd'?'ゲームの最後のみ':'ラウンド毎'}</p>
       ${sum.shootPigResult ? `<div class="round-reason shoot-pig-banner"><div class="shoot-mini-title">🐷🌕 シュート・ザ・ピッグ！</div><div><b>${esc(sum.shootPigResult.shooterName)}</b> が手札の2枚で各自1回の逆転コンボ！ 本人のババブタ/マッド失点0、他全員に-10点。</div></div>` : ''}
       <div class="round-reason">${esc(sum.reasonText)}</div>
       <div class="round-grid">${rows}</div>
@@ -9080,10 +9194,13 @@ function fanCardStyle(index, count){
   const progress=safeCount===1 ? .5 : index/(safeCount-1);
   const t=(progress-.5)*2;
   const compactPortrait=window.matchMedia?.('(max-width:430px) and (orientation:portrait)')?.matches;
+  const shortLandscape=window.matchMedia?.('(max-height:520px) and (orientation:landscape)')?.matches;
   const span=safeCount<=1 ? 0 : safeCount===2 ? 44 : safeCount===3 ? 56 : safeCount===4 ? 66 : compactPortrait ? 77 : 80;
   const left=50 + (progress-.5)*span;
   const angle=t*(compactPortrait ? 7.5 : 11.5);
-  const curve=Math.pow(Math.abs(t), 1.45)*10;
+  // 扇形の端だけが画面下へ潜らないよう、横向き・PCでは全体を少し持ち上げる。
+  const baseLift=compactPortrait ? 0 : (shortLandscape ? 12 : 8);
+  const curve=Math.pow(Math.abs(t), 1.45)*(compactPortrait ? 6 : 10)-baseLift;
   return `--fan-left:${left.toFixed(3)}%;--fan-angle:${angle.toFixed(3)}deg;--fan-y:${curve.toFixed(3)}px;--fan-z:${index+1};--fan-delay:${Math.min(index*28,280)}ms`;
 }
 
@@ -9235,8 +9352,9 @@ function requestPickTargets(cardIds){
     scheduleReconnect(true);
     return;
   }
-  send({type:'pickTargets', cardIds:(cardIds||[]).map(String)});
-  pickTargetSelectedIds = [];
+  if(send({type:'pickTargets', cardIds:(cardIds||[]).map(String)})){
+    pickTargetSelectedIds = [];
+  }
 }
 
 function requestPairChoice(cardId, skip){
@@ -9260,8 +9378,9 @@ function requestPassThree(cardIds){
     $('message').textContent = 'パスするカードを3枚選んでください。';
     return;
   }
-  send({type:'passThree', cardIds:cardIds.map(String)});
-  passSelectedIds = [];
+  if(send({type:'passThree', cardIds:cardIds.map(String)})){
+    passSelectedIds = [];
+  }
 }
 
 function requestInitialPairDiscard(cardAId, cardBId){
@@ -9369,11 +9488,11 @@ function renderScore(){
     return `
     <div class="break-card">
       <h4>${rank.medal} ${rank.label}・${esc(p.name)}</h4>
-      <div class="break-row"><span>ごちそう山</span><b>+${p.final.pile}</b></div>
-      <div class="break-row"><span>残り手札失点</span><b>-${p.final.handPenalty}</b></div>
-      ${state.madPigEnabled !== false ? `<div class="break-row"><span>${madPigPenaltyDisplayLabel()}</span><b>-${p.final.madPigPenalty}</b></div>` : `<div class="break-row"><span>マッド・ピッグ</span><b>なし</b></div>`}
-      <div class="break-row"><span>ババブタ</span><b>-${p.final.jokerPenalty}</b></div>
-      <div class="break-row"><span>シュート失点</span><b>-${p.final.shootPigPenalty ?? 0}</b></div>
+      ${state.roundDealMode==='reshuffle' ? `<div class="break-row"><span>過去ラウンドのカード得点</span><b>${signedDisplay(p.final.completedRoundCardScore||0)}</b></div><div class="break-row"><span>最終ラウンド・ごちそう山</span><b>+${p.final.pile}</b></div>` : `<div class="break-row"><span>ごちそう山</span><b>+${p.final.pile}</b></div>`}
+      <div class="break-row"><span>${state.roundDealMode==='reshuffle'?'最終ラウンド・残り手札失点':'残り手札失点'}</span><b>${penaltyDisplay(p.final.handPenalty)}</b></div>
+      ${state.madPigEnabled !== false ? `<div class="break-row"><span>${madPigPenaltyDisplayLabel()}</span><b>${penaltyDisplay(p.final.madPigPenalty)}</b></div>` : `<div class="break-row"><span>マッド・ピッグ</span><b>なし</b></div>`}
+      <div class="break-row"><span>ババブタ</span><b>${penaltyDisplay(p.final.jokerPenalty)}</b></div>
+      <div class="break-row"><span>シュート失点</span><b>${penaltyDisplay(p.final.shootPigPenalty ?? 0)}</b></div>
       ${p.final.shootPigActivatedRounds?.length ? `<div class="break-row"><span>シュート成功</span><b>${p.final.shootPigActivatedRounds.join(',')}R</b></div>` : ''}
       <div class="break-total">合計 ${p.final.total} 点</div>
     </div>
@@ -9381,7 +9500,7 @@ function renderScore(){
 
   const rows=sorted.map((p,idx)=>{
     const rank=rankMeta(idx);
-    return `<tr><td>${rank.medal} ${rank.label}</td><td>${esc(p.name)}</td><td>${p.final.pile}</td><td>-${p.final.handPenalty}</td><td>${state.madPigEnabled !== false ? `-${p.final.madPigPenalty}` : `なし`}</td><td>-${p.final.jokerPenalty}</td><td>-${p.final.shootPigPenalty || 0}</td><td><b>${p.final.total}</b></td></tr>`;
+    return `<tr><td>${rank.medal} ${rank.label}</td><td>${esc(p.name)}</td><td>${p.final.pile}</td><td>${penaltyDisplay(p.final.handPenalty)}</td><td>${state.madPigEnabled !== false ? penaltyDisplay(p.final.madPigPenalty) : `なし`}</td><td>${penaltyDisplay(p.final.jokerPenalty)}</td><td>${penaltyDisplay(p.final.shootPigPenalty || 0)}</td><td><b>${p.final.total}</b></td></tr>`;
   }).join('');
 
   const last = sorted[sorted.length-1];
@@ -9403,11 +9522,11 @@ function renderScore(){
       </div>
       <div class="podium">${podium}</div>
       ${finalReason}<div class="final-comment">${comment}</div>
-      <h3 style="margin:14px 0 6px;color:#b64040">得点内訳</h3>${state.madPigEnabled !== false ? `<div class="final-comment">マッド・ピッグ（💧11）は、数字分以外では手札・山とも固有-13点で、通常カード失点とは重複しません。数字分失点では手札なら-40点、山なら+1点後に-40点です。</div>` : `<div class="final-comment">この部屋ではマッド・ピッグなし。💧11は通常カードとして扱います。</div>`}<div class="final-comment">シュートはババブタとマッドの両方が手札にある時だけ発動し、各プレイヤー1回までです。山のマッドは条件に含みません。</div><div class="final-comment">ババブタ失点は ${state.jokerPenaltyTiming==='gameEnd'?'ゲームの最後のみ':'ラウンド毎'} 適用です。</div>
+      <h3 style="margin:14px 0 6px;color:#b64040">得点内訳</h3>${state.madPigEnabled !== false ? `<div class="final-comment">マッド・ピッグ（💧11）は、数字分以外では手札・山とも固有-13点で、通常カード失点とは重複しません。数字分失点では手札なら-40点、山なら+1点後に-40点です。</div>` : `<div class="final-comment">この部屋ではマッド・ピッグなし。💧11は通常カードとして扱います。</div>`}<div class="final-comment">シュートはババブタとマッドの両方が手札にある時だけ発動し、各プレイヤー1回までです。山のマッドは条件に含みません。</div><div class="final-comment">ババブタ失点は ${state.jokerPenaltyTiming==='gameEnd'?'ゲームの最後のみ':'ラウンド毎'} 適用です。</div><div class="final-comment">ラウンド間の配り方は「${state.roundDealMode==='carryOver'?'残りカードを持ち越して補充':'全カードを回収してシャッフル'}」です。全シャッフル時も各ラウンドのカード得点は累計されています。</div>
       <div class="final-breakdown">${breakdown}</div>
       <div class="score-compact">
         <table class="score">
-          <tr><th>順位</th><th>名前</th><th>得点パイル</th><th>残り手札</th><th>マッド・ピッグ</th><th>ババブタ</th><th>シュート</th><th>合計</th></tr>
+          <tr><th>順位</th><th>名前</th><th>${state.roundDealMode==='reshuffle'?'最終R山':'ごちそう山'}</th><th>残り手札</th><th>マッド・ピッグ</th><th>ババブタ</th><th>シュート</th><th>合計</th></tr>
           ${rows}
         </table>
       </div>
@@ -9417,7 +9536,7 @@ function renderScore(){
       </div>
     </div>
   `;
-  const key = JSON.stringify((state.players||[]).map(p=>[p.name,p.final?.total,p.final?.jokerPenalty,p.final?.madPigPenalty,p.final?.shootPigPenalty,p.final?.shootPigActivatedRounds?.join(',')]).concat([state.jokerPenaltyTiming,state.shootThePigEnabled,state.madPigEnabled,state.penaltyMode]));
+  const key = JSON.stringify((state.players||[]).map(p=>[p.name,p.final?.total,p.final?.completedRoundCardScore,p.final?.jokerPenalty,p.final?.madPigPenalty,p.final?.shootPigPenalty,p.final?.shootPigActivatedRounds?.join(',')]).concat([state.jokerPenaltyTiming,state.shootThePigEnabled,state.madPigEnabled,state.penaltyMode,state.roundDealMode]));
   if(key === __lastScoreRenderKey) return;
   __lastScoreRenderKey = key;
   $('score').innerHTML = scoreHtml;
@@ -9446,6 +9565,17 @@ function cardHTML(c, playable=false){
     <div class="suit suit-name">${mad?'マッド':suit.shortName}</div>
     ${mad?`<div class="danger-chip">${madPenaltyChip}</div>`:''}
   </div>`;
+}
+function penaltyDisplay(value, fallback='—'){
+  const n=Number(value);
+  if(!Number.isFinite(n)) return fallback;
+  if(n===0) return '0';
+  return `-${Math.abs(n)}`;
+}
+function signedDisplay(value, fallback='—'){
+  const n=Number(value);
+  if(!Number.isFinite(n)) return fallback;
+  return n>0 ? `+${n}` : `${n}`;
 }
 function esc(s){ return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
 function escAttr(s){ return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }

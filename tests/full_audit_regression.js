@@ -41,7 +41,8 @@ sandbox.globalThis = sandbox;
 const exportSource = `${source}\n;globalThis.__auditApi={
   ensureLobbyHost, reconnectRoom, ensureRoomProgress,
   maybeFinishPassPhase, maybeFinishInitialPairPhase, finishPassThreePhase,
-  resolveTrick, finishAfterPick, makeDeck, sortHand, rooms
+  resolveTrick, finishAfterPick, makeDeck, sortHand, rooms,
+  rememberEndAfterTrick, endCandidatePid, safeFinishBecauseNoPlayable, cleanName
 };`;
 vm.runInNewContext(exportSource, sandbox, {filename:serverPath});
 const api = sandbox.__auditApi;
@@ -49,14 +50,14 @@ const api = sandbox.__auditApi;
 const openWs = ()=>({readyState:1, sent:[], send(v){ this.sent.push(v); }, close(){ this.readyState=3; }});
 const player = (id, hand=[])=>({
   id, name:id, resumeToken:`token-${id}`, cpu:false, ws:openWs(), disconnectedAt:null,
-  hand, scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0,
+  hand, scorePile:[], pairs:[], completedRoundCardScoreBank:0, jokerPenaltyBank:0, shootPigPenaltyBank:0,
   shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false,
   shootPigActivatedRounds:[], out:false
 });
 const baseRoom = (players, extra={})=>({
   code:'AUD1', hostId:players[0]?.id, players, phase:'playing', round:1, totalRounds:2,
   madPigEnabled:true, shootThePigEnabled:true, jokerPenalty:20, jokerPenaltyTiming:'perRound',
-  penaltyMode:'mud6', pickTargetCount:2, initialPairDiscardEnabled:false, passThreeEnabled:false,
+  roundDealMode:'reshuffle', penaltyMode:'mud6', pickTargetCount:2, initialPairDiscardEnabled:false, passThreeEnabled:false,
   lead:0, current:0, leadSuit:null, trick:[], stock:[], log:[], commentary:[], pendingPick:null,
   trickReview:null, roundEndSummary:null, roundEndDeferred:null, shootPigRoundResults:{},
   initialPairDone:[], passDone:[], passSelections:{}, ...extra
@@ -236,6 +237,37 @@ const baseRoom = (players, extra={})=>({
   assert.match(room.roundEndSummary.reasonText,/ババブタ1枚だけ/);
 }
 
+
+// When more than one player empties in the same trick, preserve the first actual finisher.
+{
+  const players=[player('E0'),player('E1'),player('E2'),player('E3')];
+  const room=baseRoom(players,{round:2,trick:[{pid:2,card:{id:'played',suit:'apple',rank:1,val:1}}]});
+  api.rememberEndAfterTrick(room,2);
+  api.rememberEndAfterTrick(room,0);
+  assert.strictEqual(room.roundEndDeferred.pid,2);
+  assert.strictEqual(api.endCandidatePid(room),2);
+}
+
+// If an impossible empty-hand turn appears during a partial trick, restore the table card before ending.
+{
+  const card={id:'restore-me',faceKey:'apple-5',suit:'apple',rank:5,val:5,joker:false};
+  const players=[player('R0',[]),player('R1',[]),player('R2',[{id:'r2',suit:'corn',rank:2,val:2,joker:false}]),player('R3',[{id:'r3',suit:'mud',rank:3,val:3,joker:false}])];
+  const room=baseRoom(players,{current:1,lead:0,leadSuit:'apple',trick:[{pid:0,card,order:0}]});
+  assert.strictEqual(api.safeFinishBecauseNoPlayable(room,1),true);
+  assert.strictEqual(room.phase,'roundEnd');
+  assert.strictEqual(room.trick.length,0);
+  assert.ok(players[0].hand.some(c=>c.id==='restore-me'));
+  assert.strictEqual(players.reduce((n,p)=>n+p.scorePile.length,0),0);
+}
+
+// Player names collapse line breaks and count Unicode characters without splitting emoji.
+{
+  assert.strictEqual(api.cleanName('  A\n\tB  '),'A B');
+  const cleaned=api.cleanName('🐷'.repeat(20));
+  assert.strictEqual(Array.from(cleaned).length,12);
+  assert.ok(!cleaned.includes('\uFFFD'));
+}
+
 // Client regressions: two commentary rows, non-blocking rapid taps, accurate result labels and tie ranks.
 assert.match(html,/state\.commentary\|\|\[\]\)\.slice\(0,2\)/);
 assert.match(html,/speech-bubble:nth-child\(n\+3\)/);
@@ -252,5 +284,27 @@ assert.match(html,/@media \(max-width:360px\) and \(orientation:portrait\)[\s\S]
 assert.match(html,/classList\.toggle\('is-setup-mode'/);
 assert.match(html,/game-screen\.is-setup-mode \.hand-dock #handNote[\s\S]*pointer-events:auto/);
 assert.match(html,/game-screen\.is-setup-mode[\s\S]*grid-template-rows:44px 30px minmax\(0,1fr\) 224px/);
+
+
+assert.match(html,/id="roundDealMode"/);
+assert.match(html,/全カードを回収してシャッフル/);
+assert.match(html,/roundDealMode:\$\('roundDealMode'\)\.value/);
+assert.match(html,/毎R全シャッフル/);
+assert.match(html,/visibility probe timeout/);
+assert.match(html,/70000[\s\S]*heartbeat timeout/);
+assert.match(html,/not\(\.ui-phone\) \.commentary-layer[\s\S]*padding:3px 2px 3px 4px/);
+assert.match(source,/WS_HEARTBEAT_MAX_MISSES/);
+assert.match(source,/missedHeartbeats/);
+assert.match(source,/const deferred = room\.roundEndDeferred/);
+assert.match(source,/空手札の手番がトリック途中に発生/);
+assert.match(source,/if\(!silent\) maybeFinishInitialPairPhase/);
+assert.match(html,/function penaltyDisplay/);
+assert.match(html,/累計暫定得点/);
+assert.doesNotMatch(html,/`-\$\{r\.jokerPenalty \?\? 0\}`/);
+assert.match(html,/compactPortrait \? 6 : 10/);
+assert.match(html,/function isTerminalReconnectError/);
+assert.match(html,/mode === 'expired'/);
+assert.match(html,/if\(send\(\{type:'pickTargets'/);
+assert.match(html,/if\(send\(\{type:'passThree'/);
 
 console.log('full audit regression: all assertions passed');

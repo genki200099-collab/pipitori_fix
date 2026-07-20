@@ -11,7 +11,8 @@
     "test:smoke": "node tests/websocket_game_smoke.js",
     "test:reconnect": "node tests/reconnect_recovery_smoke.js",
     "test:resilience": "node tests/progress_resilience_smoke.js",
-    "test:integrity": "node tests/source_integrity_regression.js"
+    "test:integrity": "node tests/source_integrity_regression.js",
+    "test:fullgame": "node tests/four_human_completion_smoke.js"
   },
   "dependencies": {
     "ws": "^8.18.0"

@@ -37,11 +37,11 @@ sandbox.globalThis = sandbox;
 
 const exportSource = `${source}\n;globalThis.__rulesTestApi={
   SUIT_DEFINITIONS, suits, makeDeck, cardText, isMadPig, sortHand, playableIds, judgeWeakestCard,
-  normalizePenaltyMode, handPenaltyForRoom, madPigPenaltyForRoom,
+  normalizePenaltyMode, normalizeRoundDealMode, handPenaltyForRoom, madPigPenaltyForRoom,
   playerHasMadPigInHand, playerHasUsedShootThePig, playerCanShootThePig,
   applyShootThePigForRound, makeRoundSnapshot, cpuCardHandRisk,
   roomPenaltyLabel, publicState, score, createRoom, rooms,
-  registerMadPigEvent, registerPairCleanEvent, pickResultDisplayMs
+  registerMadPigEvent, registerPairCleanEvent, pickResultDisplayMs, beginNextRound
 };`;
 vm.runInNewContext(exportSource, sandbox, {filename:serverPath});
 const api = sandbox.__rulesTestApi;
@@ -50,12 +50,12 @@ const card = (suit, rank, id=`${suit}${rank}`)=>({id, suit, rank:String(rank), v
 const joker = (id='J')=>({id, faceKey:'JOKER', suit:null, rank:'JOKER', val:0, joker:true});
 const basePlayer = (name, hand=[], pile=[])=>({
   id:name, name, cpu:false, ws:null, hand, scorePile:pile, pairs:[],
-  jokerPenaltyBank:0, shootPigPenaltyBank:0,
+  completedRoundCardScoreBank:0, jokerPenaltyBank:0, shootPigPenaltyBank:0,
   shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false,
   shootPigActivatedRounds:[], out:false
 });
 const baseRoom = (players, extra={})=>({
-  players, penaltyMode:'mud6', madPigEnabled:true,
+  players, roundDealMode:'reshuffle', penaltyMode:'mud6', madPigEnabled:true,
   shootThePigEnabled:true, jokerPenalty:20, jokerPenaltyTiming:'perRound',
   round:1, totalRounds:3, shootPigRoundResults:{}, shootPigEvent:null,
   log:[], commentary:[], ...extra
@@ -103,6 +103,10 @@ assert.strictEqual(api.normalizePenaltyMode('flat3'), 'flat3');
 assert.strictEqual(api.normalizePenaltyMode('faceValue'), 'faceValue');
 assert.strictEqual(api.normalizePenaltyMode('mudSuit'), 'mudSuit');
 assert.strictEqual(api.normalizePenaltyMode('spadeSuit'), 'mudSuit'); // old-client alias
+assert.strictEqual(api.normalizeRoundDealMode(undefined), 'reshuffle');
+assert.strictEqual(api.normalizeRoundDealMode('reshuffle'), 'reshuffle');
+assert.strictEqual(api.normalizeRoundDealMode('carryOver'), 'carryOver');
+assert.strictEqual(api.normalizeRoundDealMode('unknown'), 'reshuffle');
 
 // The physical deck uses only the four pig-flavored suits.
 {
@@ -303,6 +307,7 @@ assert.strictEqual(api.normalizePenaltyMode('spadeSuit'), 'mudSuit'); // old-cli
   api.createRoom(ws,'Tester');
   const room=[...api.rooms.values()].at(-1);
   assert.strictEqual(room.totalRounds,3);
+  assert.strictEqual(room.roundDealMode,'reshuffle');
   assert.strictEqual(room.penaltyMode,'mud6');
   assert.strictEqual(room.pickTargetCount,2);
   assert.strictEqual(room.shootThePigEnabled,true);
@@ -311,6 +316,7 @@ assert.strictEqual(api.normalizePenaltyMode('spadeSuit'), 'mudSuit'); // old-cli
   assert.ok(sent.some(x=>x.type==='created'));
   const state=api.publicState(room,room.players[0].id);
   assert.strictEqual(state.shootThePigPerPlayerLimit,1);
+  assert.strictEqual(state.roundDealMode,'reshuffle');
   assert.strictEqual(state.players[0].shootUsed,false);
 }
 
@@ -323,11 +329,75 @@ assert.strictEqual(api.normalizePenaltyMode('spadeSuit'), 'mudSuit'); // old-cli
   assert.strictEqual(room.shootThePigEnabled,false);
 }
 
+
+// Default round transition collects every card, banks the finished round's card score,
+// and deals a fresh 13-card hand to every player.
+{
+  const players=[basePlayer('RA'),basePlayer('RB'),basePlayer('RC'),basePlayer('RD')];
+  players[0].completedRoundCardScoreBank=4;
+  players.forEach((p,i)=>{ p.hand=[card('apple',i+1,`old-${i}`)]; p.scorePile=[card('corn',i+1,`pile-${i}`)]; p.pairs=[card('cabbage',i+1,`pair-a-${i}`),card('mud',i+1,`pair-b-${i}`)]; });
+  const room=baseRoom(players,{
+    code:'RS01',phase:'roundEnd',round:1,totalRounds:3,roundDealMode:'reshuffle',
+    roundEndOutPid:2,roundEndSummary:{rows:[
+      {pid:0,currentRoundCardScore:5},{pid:1,currentRoundCardScore:-3},
+      {pid:2,currentRoundCardScore:0},{pid:3,currentRoundCardScore:2}
+    ]},lead:0,current:null,trick:[],stock:[],log:[],commentary:[]
+  });
+  api.beginNextRound(room);
+  assert.strictEqual(room.round,2);
+  assert.strictEqual(room.current,2);
+  assert.strictEqual(room.roundDealMode,'reshuffle');
+  assert.deepStrictEqual(players.map(p=>p.completedRoundCardScoreBank),[9,-3,0,2]);
+  assert.ok(players.every(p=>p.hand.length===13));
+  assert.ok(players.every(p=>p.scorePile.length===0 && p.pairs.length===0));
+  assert.strictEqual(players.flatMap(p=>p.hand).filter(c=>c.joker).length,1);
+  assert.ok(room.removedCard && !room.removedCard.joker);
+  assert.match(room.message,/全カードを回収してシャッフル/);
+}
+
+
+// Final scoring in reshuffle mode includes banked card scores from earlier rounds exactly once.
+{
+  const a=basePlayer('SA',[card('apple',2,'sa-hand')],[card('corn',4,'sa-pile-1'),card('cabbage',5,'sa-pile-2')]);
+  const others=[basePlayer('SB',[card('apple',3,'sb')]),basePlayer('SC',[card('apple',4,'sc')]),basePlayer('SD',[card('apple',5,'sd')])];
+  a.completedRoundCardScoreBank=12;
+  const room=baseRoom([a,...others],{roundDealMode:'reshuffle',round:3,totalRounds:3});
+  api.score(room);
+  // Current round card score: pile 2 - hand penalty 3 = -1; previous rounds +12 => 11.
+  assert.strictEqual(a.final.completedRoundCardScore,12);
+  assert.strictEqual(a.final.currentRoundCardScore,-1);
+  assert.strictEqual(a.final.total,11);
+}
+
+// Optional legacy mode keeps the existing zones and only refills hands.
+{
+  const deck=api.makeDeck();
+  const removed=deck.find(c=>!c.joker);
+  const active=deck.filter(c=>c!==removed);
+  const players=[basePlayer('CA'),basePlayer('CB'),basePlayer('CC'),basePlayer('CD')];
+  for(let i=0;i<4;i++) players[i].hand=active.slice(i*13,(i+1)*13);
+  for(let i=0;i<3;i++) players[i].scorePile.push(players[i].hand.pop());
+  players[0].pairs=[card('apple',7,'history-a'),card('corn',7,'history-b')];
+  const bankBefore=players.map((p,i)=>(p.completedRoundCardScoreBank=i));
+  const room=baseRoom(players,{
+    code:'CO01',phase:'roundEnd',round:1,totalRounds:3,roundDealMode:'carryOver',removedCard:removed,
+    roundEndOutPid:1,roundEndSummary:{rows:players.map((p,pid)=>({pid,currentRoundCardScore:99}))},
+    lead:0,current:null,trick:[],stock:[],log:[],commentary:[]
+  });
+  api.beginNextRound(room);
+  assert.ok(players.every(p=>p.hand.length===13));
+  assert.strictEqual(players[0].scorePile.length,1);
+  assert.strictEqual(players[0].pairs.length,2);
+  assert.deepStrictEqual(players.map(p=>p.completedRoundCardScoreBank),bankBefore);
+  assert.match(room.message,/持ち越し/);
+}
+
 // Static UI contract: selected option, standard preset, help copy, and no weakest +3 bonus.
 {
   const html=fs.readFileSync(htmlPath,'utf8');
   assert.match(html,/<option value="mud6" selected>リンゴ・トウモロコシ・キャベツは-3点、通常の💧は-6点<\/option>/);
-  assert.match(html,/values:\{rounds:'3',penaltyMode:'mud6'.*pickTargetCount:'2'.*passThreeEnabled:'false'.*initialPairDiscardEnabled:'false'/);
+  assert.match(html,/<select id="roundDealMode"[^>]*><option value="reshuffle" selected>全カードを回収してシャッフル<\/option>/);
+  assert.match(html,/values:\{rounds:'3',roundDealMode:'reshuffle',penaltyMode:'mud6'.*pickTargetCount:'2'.*passThreeEnabled:'false'.*initialPairDiscardEnabled:'false'/);
   assert.match(html,/両方が手札にある状態/);
   assert.match(html,/各プレイヤーが発動できるのは1ゲームに1回まで/);
   assert.strictEqual((html.match(/penaltyMode:'mud6'/g) || []).length,4);

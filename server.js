@@ -50,14 +50,20 @@ function positiveDuration(value, fallback, minimum=100){
   const parsed=Number(value);
   return Number.isFinite(parsed) && parsed >= minimum ? Math.floor(parsed) : fallback;
 }
-const WS_HEARTBEAT_INTERVAL_MS = positiveDuration(process.env.WS_HEARTBEAT_INTERVAL_MS, 15 * 1000);
+const WS_HEARTBEAT_INTERVAL_MS = positiveDuration(process.env.WS_HEARTBEAT_INTERVAL_MS, 20 * 1000);
+const WS_HEARTBEAT_MAX_MISSES = Math.max(2, Math.min(6, Number(process.env.WS_HEARTBEAT_MAX_MISSES) || 3));
 const DISCONNECTED_ACTION_GRACE_MS = positiveDuration(process.env.DISCONNECTED_ACTION_GRACE_MS, 45 * 1000);
 const ROUND_END_AUTO_CONTINUE_MS = positiveDuration(process.env.ROUND_END_AUTO_CONTINUE_MS, 45 * 1000);
 const ROOM_EMPTY_TTL_MS = positiveDuration(process.env.ROOM_EMPTY_TTL_MS, 10 * 60 * 1000);
 
 const wsHeartbeatTimer = setInterval(()=>{
   for(const client of wss.clients){
-    if(client.isAlive === false){
+    if(client.isAlive === false) client.missedHeartbeats = Number(client.missedHeartbeats || 0) + 1;
+    else client.missedHeartbeats = 0;
+
+    // モバイル回線切替・Safariの一時停止・Render側の瞬間的な遅延で、
+    // 1回だけpongが遅れた接続を即座に切らない。複数回連続で応答がない時だけ切断する。
+    if(client.missedHeartbeats >= WS_HEARTBEAT_MAX_MISSES){
       try { client.terminate(); } catch(e) {}
       continue;
     }
@@ -365,7 +371,11 @@ function safeFinishBecauseNoPlayable(room, pid){
         broadcast(room);
         return true;
       }
-      log(room, `⚠️ ${p.name} がトリック中に出せるカードを持たないため、ラウンド終了処理へ進みます。`);
+      // 異常状態で、まだ場に出していない空手札プレイヤーへ手番が来た場合、
+      // 既に出ているカードを失わせず所有者へ戻してからラウンドを終了する。
+      const interrupted = Array.isArray(room.trick) ? room.trick.slice() : [];
+      log(room, `⚠️ ${p.name} がトリック途中で出せるカードを持たないため、場札を所有者へ戻してラウンド終了処理へ進みます。`);
+      cancelCorruptTrick(room, interrupted, '空手札の手番がトリック途中に発生');
     } else {
       log(room, `🏁 ${p.name} の手札がなくなったため、ラウンド終了処理へ進みます。`);
     }
@@ -1130,6 +1140,7 @@ function publicState(room, viewerId){
     pairCleanEvent: room.pairCleanEvent && room.pairCleanEvent.expiresAt > Date.now() ? room.pairCleanEvent : null,
     initialPairDiscardEnabled: room.initialPairDiscardEnabled === true,
     passThreeEnabled: room.passThreeEnabled === true,
+    roundDealMode: normalizeRoundDealMode(room.roundDealMode),
     penaltyMode: normalizePenaltyMode(room.penaltyMode),
     pickTargetCount: normalizePickTargetCount(room.pickTargetCount),
     passDone: room.passDone || [],
@@ -1289,6 +1300,15 @@ function normalizePassThreeEnabled(v){
 
 function normalizeInitialPairDiscardEnabled(v){
   return v === true || v === 'true' || v === 1 || v === '1' || v === 'on';
+}
+
+function normalizeRoundDealMode(v){
+  // 標準は毎ラウンド全カードを回収して配り直す。
+  // carryOver は旧ルール互換：残り手札・ごちそう山・ペアを保持して13枚まで補充。
+  return v === 'carryOver' ? 'carryOver' : 'reshuffle';
+}
+function roundDealModeLabel(room){
+  return normalizeRoundDealMode(room?.roundDealMode) === 'carryOver' ? 'カード持ち越し' : '毎R全シャッフル';
 }
 
 
@@ -1666,20 +1686,23 @@ function roomMadPigLabel(room){
 
 
 function roomOptionSummary(room){
-  return `全${room.totalRounds || 3}R / 失点:${roomPenaltyLabel(room)} / ババ:-${room.jokerPenalty ?? 20}(${jokerPenaltyTimingLabel(room)}) / マッド:${roomMadPigLabel(room)} / シュート:${shootThePigLabel(room)} / ピック:${pickTargetLabel(room)} / 3枚パス:${room.passThreeEnabled ? 'あり' : 'なし'} / 開始ペア:${room.initialPairDiscardEnabled ? 'あり' : 'なし'}`;
+  return `全${room.totalRounds || 3}R / 配り直し:${roundDealModeLabel(room)} / 失点:${roomPenaltyLabel(room)} / ババ:-${room.jokerPenalty ?? 20}(${jokerPenaltyTimingLabel(room)}) / マッド:${roomMadPigLabel(room)} / シュート:${shootThePigLabel(room)} / ピック:${pickTargetLabel(room)} / 3枚パス:${room.passThreeEnabled ? 'あり' : 'なし'} / 開始ペア:${room.initialPairDiscardEnabled ? 'あり' : 'なし'}`;
 }
 
 
 
-function createRoom(ws, name, totalRounds=3, madPigEnabled=true, jokerPenalty=-20, initialPairDiscardEnabled=false, passThreeEnabled=false, penaltyMode='mud6', pickTargetCount=2, jokerPenaltyTiming='perRound', shootThePigEnabled=true){
+function createRoom(ws, name, totalRounds=3, madPigEnabled=true, jokerPenalty=-20, initialPairDiscardEnabled=false, passThreeEnabled=false, penaltyMode='mud6', pickTargetCount=2, jokerPenaltyTiming='perRound', shootThePigEnabled=true, roundDealMode='reshuffle'){
   const c = code();
   const id = uid();
-  const room = {code:c, hostId:id, players:[], phase:'lobby', round:1, totalRounds: normalizeRoundCount(totalRounds), madPigEnabled: normalizeMadPigEnabled(madPigEnabled), jokerPenalty: normalizeJokerPenalty(jokerPenalty), jokerPenaltyTiming: normalizeJokerPenaltyTiming(jokerPenaltyTiming), shootThePigEnabled: normalizeMadPigEnabled(madPigEnabled) && normalizeShootThePigEnabled(shootThePigEnabled), initialPairDiscardEnabled: normalizeInitialPairDiscardEnabled(initialPairDiscardEnabled), passThreeEnabled: normalizePassThreeEnabled(passThreeEnabled), penaltyMode: normalizePenaltyMode(penaltyMode), pickTargetCount: normalizePickTargetCount(pickTargetCount), initialPairDone:[], passDone:[], passSelections:{}, lead:0, current:0, leadSuit:null, trick:[], stock:[], log:[], message:'4人そろったら開始できます。人が足りない場合はCPUを追加できます。', pendingPick:null, commentary:[], lastTrick:null, shootPigEvent:null, madPigEvent:null, pairCleanEvent:null, emptySince:null, cleanupTimer:null};
-  const player = {id, resumeToken:newResumeToken(), name: cleanName(name), ws, cpu:false, disconnectedAt:null, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
+  const room = {code:c, hostId:id, players:[], phase:'lobby', round:1, totalRounds: normalizeRoundCount(totalRounds), roundDealMode:normalizeRoundDealMode(roundDealMode), madPigEnabled: normalizeMadPigEnabled(madPigEnabled), jokerPenalty: normalizeJokerPenalty(jokerPenalty), jokerPenaltyTiming: normalizeJokerPenaltyTiming(jokerPenaltyTiming), shootThePigEnabled: normalizeMadPigEnabled(madPigEnabled) && normalizeShootThePigEnabled(shootThePigEnabled), initialPairDiscardEnabled: normalizeInitialPairDiscardEnabled(initialPairDiscardEnabled), passThreeEnabled: normalizePassThreeEnabled(passThreeEnabled), penaltyMode: normalizePenaltyMode(penaltyMode), pickTargetCount: normalizePickTargetCount(pickTargetCount), initialPairDone:[], passDone:[], passSelections:{}, lead:0, current:0, leadSuit:null, trick:[], stock:[], log:[], message:'4人そろったら開始できます。人が足りない場合はCPUを追加できます。', pendingPick:null, commentary:[], lastTrick:null, shootPigEvent:null, madPigEvent:null, pairCleanEvent:null, emptySince:null, cleanupTimer:null};
+  const player = {id, resumeToken:newResumeToken(), name: cleanName(name), ws, cpu:false, disconnectedAt:null, hand:[], scorePile:[], pairs:[], completedRoundCardScoreBank:0, jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
   room.players.push(player); rooms.set(c, room); ws.roomCode=c; ws.playerId=id;
   log(room, `${player.name} が部屋を作りました。${roomOptionSummary(room)}`); send(ws,'created',{code:c, playerId:id, name:player.name, resumeToken:player.resumeToken}); broadcast(room);
 }
-function cleanName(n){ return String(n || '').trim().slice(0,12) || '子ブタ'; }
+function cleanName(n){
+  const normalized = String(n || '').replace(/\s+/g,' ').trim();
+  return Array.from(normalized).slice(0,12).join('') || '子ブタ';
+}
 function joinRoom(ws, c, name, playerId=null, resumeToken=null){
   c = String(c||'').toUpperCase().trim(); const room = rooms.get(c);
   if(!room) return send(ws,'errorMsg',{message:'部屋が見つかりません。'});
@@ -1691,7 +1714,7 @@ function joinRoom(ws, c, name, playerId=null, resumeToken=null){
   if(room.players.length >= 4) {
     return send(ws,'errorMsg',{message:'この部屋は満員です。'});
   }
-  const id = uid(); const player = {id, resumeToken:newResumeToken(), name:cleanName(name), ws, cpu:false, disconnectedAt:null, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
+  const id = uid(); const player = {id, resumeToken:newResumeToken(), name:cleanName(name), ws, cpu:false, disconnectedAt:null, hand:[], scorePile:[], pairs:[], completedRoundCardScoreBank:0, jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
   cancelRoomCleanup(room);
   room.players.push(player); ws.roomCode=c; ws.playerId=id;
   log(room, `${player.name} が参加しました。`);
@@ -1706,7 +1729,7 @@ function addCpu(room, requesterId){
   if(room.players.length >= 4) { room.message='この部屋は満員です。'; broadcast(room); return; }
   const used = new Set(room.players.filter(p=>p.cpu).map(p=>p.cpuCharacter?.key || cpuCharacterByName(p.name)?.key));
   const ch = CPU_CHARACTERS.find(c=>!used.has(c.key)) || {key:`cpu-${uid()}`, name:`CPU${room.players.length}`, avatar:'🐷'};
-  const player = {id:`CPU-${uid()}`, name:ch.name, ws:null, cpu:true, disconnectedAt:null, cpuCharacter:ch, hand:[], scorePile:[], pairs:[], jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
+  const player = {id:`CPU-${uid()}`, name:ch.name, ws:null, cpu:true, disconnectedAt:null, cpuCharacter:ch, hand:[], scorePile:[], pairs:[], completedRoundCardScoreBank:0, jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
   room.players.push(player);
   log(room, `${player.name} を追加しました。`);
   say(room, room.players.length-1, ch.catchphrase || 'よろしくお願いします。', {eventKey:'greeting'});
@@ -2255,7 +2278,7 @@ function startGame(room, requesterId){
   room.roundEndSummary=null; room.finalRoundSummary=null; room.roundEndOutPid=null; room.roundEndDeferred=null; room.initialPairDone=[]; room.passDone=[]; room.passSelections={};
   room.roundStart = null; room.shootPigRoundResults={}; room.shootPigEvent=null; room.madPigEvent=null; room.pairCleanEvent=null;
   room.lastHumanTurnRebroadcastAt = 0; room.lastNoPlayableRebroadcastAt = 0;
-  for(const p of room.players){ p.hand=[]; p.scorePile=[]; p.pairs=[]; p.jokerPenaltyBank=0; p.shootPigPenaltyBank=0; p.shootPigFinalMadPigWaived=false; p.shootPigGameEndJokerWaived=false; p.shootPigActivatedRounds=[]; p.out=false; p.final=null; }
+  for(const p of room.players){ p.hand=[]; p.scorePile=[]; p.pairs=[]; p.completedRoundCardScoreBank=0; p.jokerPenaltyBank=0; p.shootPigPenaltyBank=0; p.shootPigFinalMadPigWaived=false; p.shootPigGameEndJokerWaived=false; p.shootPigActivatedRounds=[]; p.out=false; p.final=null; }
   dealInitial(room);
   log(room, `収穫祭スタート！${roomOptionSummary(room)}。通常カードを1枚抜き、全員13枚で開始します。`);
 
@@ -2585,7 +2608,9 @@ function discardInitialPair(room, playerId, cardAId, cardBId, silent=false){
     log(room, `🧹 ${room.message}`);
   }
   if(!hasInitialPairCandidate(p)) markInitialPairDone(room, pid);
-  maybeFinishInitialPairPhase(room);
+  // CPUの連続ペア処理中は親ループへ戻す。ここから再帰すると、
+  // ペアが多い配札で maybeFinishInitialPairPhase が深く入れ子になる。
+  if(!silent) maybeFinishInitialPairPhase(room);
 }
 
 function skipInitialPairs(room, playerId){
@@ -3041,7 +3066,9 @@ function makeRoundSnapshot(room, reasonPid, reasonText){
     const rawHandPenalty = handPenaltyForRoom(room, p);
     const handPenalty = adjustHandPenaltyForShootThePig(room, p, rawHandPenalty, shootPigMadPigWaived);
     const shootPigPenalty = p.shootPigPenaltyBank || 0;
-    const total = pile - handPenalty - madPigPenalty - jokerPenaltyTotal - shootPigPenalty;
+    const completedRoundCardScore = Number(p.completedRoundCardScoreBank || 0);
+    const currentRoundCardScore = pile - handPenalty - madPigPenalty;
+    const total = completedRoundCardScore + currentRoundCardScore - jokerPenaltyTotal - shootPigPenalty;
     return {
       pid:i,
       name:p.name,
@@ -3067,6 +3094,8 @@ function makeRoundSnapshot(room, reasonPid, reasonText){
       shootPigMadPigWaived,
       shootPigPenalty,
       shootPigPenaltyTotal: shootPigPenalty,
+      completedRoundCardScore,
+      currentRoundCardScore,
       total
     };
   });
@@ -3081,6 +3110,7 @@ function makeRoundSnapshot(room, reasonPid, reasonText){
     jokerPenaltyValue,
     jokerPenaltyTiming,
     penaltyMode,
+    roundDealMode:normalizeRoundDealMode(room.roundDealMode),
     rows,
     createdAt: Date.now()
   };
@@ -3098,6 +3128,23 @@ function beginNextRound(room){
 
   const outPid = Number.isInteger(room.roundEndOutPid) ? room.roundEndOutPid : 0;
   const nextRound = Math.min((room.round || 1) + 1, room.totalRounds || 3);
+  const dealMode = normalizeRoundDealMode(room.roundDealMode);
+  const previousSummary = room.roundEndSummary;
+
+  // 全シャッフル方式では、終了したラウンドのカード由来得点だけを確定して銀行へ移す。
+  // ババブタとシュートの累計失点は既存の専用Bankで管理するため、二重加算しない。
+  if(dealMode === 'reshuffle' && previousSummary?.rows){
+    for(const row of previousSummary.rows){
+      const player=room.players[row.pid];
+      if(player){
+        const cardScore = Number.isFinite(Number(row.currentRoundCardScore))
+          ? Number(row.currentRoundCardScore)
+          : Number(row.pileScore ?? row.pile ?? 0) - Number(row.handPenalty || 0) - Number(row.madPigPenalty || 0);
+        player.completedRoundCardScoreBank = Number(player.completedRoundCardScoreBank || 0) + cardScore;
+      }
+    }
+  }
+
   room.round = nextRound;
   room.phase = 'playing';
   room.trick = [];
@@ -3115,48 +3162,62 @@ function beginNextRound(room){
   room.lastHumanTurnRebroadcastAt = 0;
   room.lastNoPlayableRebroadcastAt = 0;
 
-  let refill = buildUniqueNormalRefillDeck(room);
-  const drawRefill = () => {
-    while(room.stock.length){
-      const c = room.stock.pop();
-      if(c && !collectActiveFaceKeys(room).has(cardFaceKey(c))) return c;
+  let transitionText='';
+  let detailText='';
+  if(dealMode === 'reshuffle'){
+    // 手札・ごちそう山・浄化済みカードをすべて回収し、53枚から通常カード1枚を除いて再配札。
+    for(const p of room.players){
+      p.hand=[];
+      p.scorePile=[];
+      p.pairs=[];
+      p.out=false;
     }
-    if(!refill.length) refill = buildUniqueNormalRefillDeck(room);
-    return refill.pop();
-  };
-
-  const refillRows = [];
-  for(const p of room.players){
-    const before = p.hand.length;
-    let added = 0;
-    while(p.hand.length < 13){
-      const card = drawRefill();
-      if(card && !collectActiveFaceKeys(room).has(cardFaceKey(card))){
-        p.hand.push(card);
-        added++;
-      } else {
-        break;
+    room.stock=[];
+    room.removedCard=null;
+    dealInitial(room);
+    transitionText='全カードを回収してシャッフルし、全員へ13枚ずつ配り直しました。';
+    detailText='全員13枚の新しい手札';
+    assertUniqueActiveCards(room, `第${nextRound}ラウンド全シャッフル後`);
+  } else {
+    let refill = buildUniqueNormalRefillDeck(room);
+    const drawRefill = () => {
+      while(room.stock.length){
+        const c = room.stock.pop();
+        if(c && !collectActiveFaceKeys(room).has(cardFaceKey(c))) return c;
       }
+      if(!refill.length) refill = buildUniqueNormalRefillDeck(room);
+      return refill.pop();
+    };
+
+    const refillRows = [];
+    for(const p of room.players){
+      const before = p.hand.length;
+      let added = 0;
+      while(p.hand.length < 13){
+        const card = drawRefill();
+        if(card && !collectActiveFaceKeys(room).has(cardFaceKey(card))){
+          p.hand.push(card);
+          added++;
+        } else break;
+      }
+      sortHand(p.hand);
+      refillRows.push(`${p.name}:${before}→${p.hand.length}${added ? `(+${added})` : ''}`);
     }
-    sortHand(p.hand);
-    refillRows.push(`${p.name}:${before}→${p.hand.length}${added ? `(+${added})` : ''}`);
+    assertUniqueActiveCards(room, `第${nextRound}ラウンド補充後`);
+    const allFull = room.players.every(p=>p.hand.length === 13);
+    transitionText = allFull
+      ? '残り手札・ごちそう山・ペアを持ち越し、全員の手札を13枚まで補充しました。'
+      : '持ち越し後に補充しましたが、一部の手札が13枚未満です。';
+    detailText=`補充結果：${refillRows.join(' / ')}`;
   }
-
-  assertUniqueActiveCards(room, `第${nextRound}ラウンド補充後`);
-
-  const allFull = room.players.every(p=>p.hand.length === 13);
-  const refillText = allFull
-    ? '全員の手札を13枚まで補充しました。'
-    : '補充を行いましたが、一部の手札が13枚未満です。';
 
   room.roundStart = {
     round:nextRound,
-    text:`第${nextRound}ラウンド開始！残り手札を持ち越し、${refillText}`,
+    text:`第${nextRound}ラウンド開始！${transitionText}`,
     expiresAt:Date.now()+6500
   };
-
-  room.message=`第${nextRound}ラウンド開始。${refillText} ${room.players[room.current].name} からリード。`;
-  log(room, `${room.message} 補充結果：${refillRows.join(' / ')}`);
+  room.message=`第${nextRound}ラウンド開始。${transitionText} ${room.players[room.current].name} からリード。`;
+  log(room, `${room.message} ${detailText}`);
   announceCpuRoundStart(room);
   broadcast(room);
 }
@@ -3178,6 +3239,13 @@ function activeTrickInProgress(room){
 function endCandidatePid(room){
   if(!room || !room.players) return -1;
 
+  // 同じトリックで複数人の手札が0枚になった場合は、実際に最初に0枚になった
+  // プレイヤーを終了理由・次ラウンドのリードとして維持する。
+  const deferred = room.roundEndDeferred;
+  if(deferred && deferred.round === room.round && Number.isInteger(deferred.pid) && isEmptyHand(room.players[deferred.pid])){
+    return deferred.pid;
+  }
+
   // 手札0枚は進行不能なので、どのタイミングでも終了候補。
   const emptyPid = room.players.findIndex(isEmptyHand);
   if(emptyPid >= 0) return emptyPid;
@@ -3196,15 +3264,17 @@ function endCandidatePid(room){
 
 function rememberEndAfterTrick(room, pid){
   if(!room || pid < 0) return false;
-  if(!room.roundEndDeferred || room.roundEndDeferred.pid !== pid){
-    room.roundEndDeferred = {pid, round:room.round, trickCount:room.trick ? room.trick.length : 0, createdAt:Date.now()};
-    const p = room.players[pid];
-    const onlyJoker = isJokerOnlyHand(p);
-    room.message = onlyJoker
-      ? `${p.name} はババブタ1枚だけです。次に手番が来たらラウンド終了します。`
-      : `${p.name} の手札がなくなりました。このトリック終了後にラウンド終了します。`;
-    log(room, `🏁 ${room.message}`);
-  }
+  const current = room.roundEndDeferred;
+  // 同じラウンドで既に終了候補が記録されている場合は、後から空になった席で
+  // 上書きしない。終了理由と次ラウンドのリードが座席順へ化けるのを防ぐ。
+  if(current && current.round === room.round) return true;
+  room.roundEndDeferred = {pid, round:room.round, trickCount:room.trick ? room.trick.length : 0, createdAt:Date.now()};
+  const p = room.players[pid];
+  const onlyJoker = isJokerOnlyHand(p);
+  room.message = onlyJoker
+    ? `${p.name} はババブタ1枚だけです。次に手番が来たらラウンド終了します。`
+    : `${p.name} の手札がなくなりました。このトリック終了後にラウンド終了します。`;
+  log(room, `🏁 ${room.message}`);
   return true;
 }
 
@@ -3291,8 +3361,10 @@ function score(room){
     const jokerPenaltyAtGameEnd = (jokerPenaltyTiming === 'gameEnd' && joker && !p.shootPigGameEndJokerWaived) ? joker*jokerPenaltyValue : 0;
     const jokerPenalty = jokerPenaltyFromRounds + jokerPenaltyAtGameEnd;
     const shootPigPenalty = p.shootPigPenaltyBank || 0;
-    const total = pile - handPenalty - madPigPenalty - jokerPenalty - shootPigPenalty;
-    p.final = {pile, normalHand, handPenalty, rawHandPenalty, madPig, madPigHand, madPigPile, madPigPenalty, rawMadPigPenalty, joker, jokerPenaltyValue, jokerPenaltyTiming, jokerPenaltyFromRounds, jokerPenaltyAtGameEnd, jokerPenalty, shootPigPenalty, shootPigMadPigWaived:finalShootWaiver, shootPigGameEndJokerWaived:!!p.shootPigGameEndJokerWaived, shootPigActivatedRounds:p.shootPigActivatedRounds || [], penaltyMode, total};
+    const completedRoundCardScore = Number(p.completedRoundCardScoreBank || 0);
+    const currentRoundCardScore = pile - handPenalty - madPigPenalty;
+    const total = completedRoundCardScore + currentRoundCardScore - jokerPenalty - shootPigPenalty;
+    p.final = {pile, normalHand, handPenalty, rawHandPenalty, madPig, madPigHand, madPigPile, madPigPenalty, rawMadPigPenalty, completedRoundCardScore, currentRoundCardScore, joker, jokerPenaltyValue, jokerPenaltyTiming, jokerPenaltyFromRounds, jokerPenaltyAtGameEnd, jokerPenalty, shootPigPenalty, shootPigMadPigWaived:finalShootWaiver, shootPigGameEndJokerWaived:!!p.shootPigGameEndJokerWaived, shootPigActivatedRounds:p.shootPigActivatedRounds || [], penaltyMode, roundDealMode:normalizeRoundDealMode(room.roundDealMode), total};
   }
 }
 
@@ -3304,16 +3376,18 @@ function score(room){
 
 wss.on('connection', (ws) => {
   ws.isAlive = true;
-  ws.on('pong', ()=>{ ws.isAlive = true; });
+  ws.missedHeartbeats = 0;
+  ws.on('pong', ()=>{ ws.isAlive = true; ws.missedHeartbeats = 0; });
   ws.on('message', (raw) => {
     ws.isAlive = true;
+    ws.missedHeartbeats = 0;
     let msg; try { msg=JSON.parse(raw); } catch(e){ return; }
     try{
       if(msg.type==='ping') return send(ws,'pong',{at:Date.now(), echo:msg.at || null});
       if((msg.type==='create' || msg.type==='join' || msg.type==='reconnect') && roomByWs(ws)){
         return send(ws,'errorMsg',{message:'この画面はすでに部屋へ接続済みです。別の部屋へ移る場合は新しい画面で開いてください。'});
       }
-      if(msg.type==='create') return createRoom(ws, msg.name, msg.rounds, msg.madPigEnabled, msg.jokerPenalty, msg.initialPairDiscardEnabled, msg.passThreeEnabled, msg.penaltyMode, msg.pickTargetCount, msg.jokerPenaltyTiming, msg.shootThePigEnabled);
+      if(msg.type==='create') return createRoom(ws, msg.name, msg.rounds, msg.madPigEnabled, msg.jokerPenalty, msg.initialPairDiscardEnabled, msg.passThreeEnabled, msg.penaltyMode, msg.pickTargetCount, msg.jokerPenaltyTiming, msg.shootThePigEnabled, msg.roundDealMode);
       if(msg.type==='join') return joinRoom(ws, msg.code, msg.name, msg.playerId, msg.resumeToken);
       if(msg.type==='reconnect') return reconnectRoom(ws, msg.code, msg.playerId, msg.name, msg.resumeToken);
       const room = roomByWs(ws); if(!room) return;
