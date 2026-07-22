@@ -5,14 +5,16 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/default_rules_regression.js && node tests/full_audit_regression.js && node tests/mobile_ui_regression.js && node tests/layout_collision_regression.js && node tests/source_integrity_regression.js",
+    "test": "node tests/default_rules_regression.js && node tests/full_audit_regression.js && node tests/commentary_readability_regression.js && node tests/cpu_personality_dialogue_regression.js && node tests/spotlight_priority_regression.js && node tests/spotlight_flow_regression.js && node tests/match_lifecycle_regression.js && node tests/game_engine_stress_regression.js && node tests/async_progress_smoke.js && node tests/mobile_ui_regression.js && node tests/layout_collision_regression.js && node tests/source_integrity_regression.js && node tests/app_icon_regression.js",
     "test:ui": "node tests/mobile_ui_regression.js && node tests/layout_collision_regression.js",
     "test:layout": "node tests/layout_collision_regression.js",
     "test:smoke": "node tests/websocket_game_smoke.js",
     "test:reconnect": "node tests/reconnect_recovery_smoke.js",
     "test:resilience": "node tests/progress_resilience_smoke.js",
     "test:integrity": "node tests/source_integrity_regression.js",
-    "test:fullgame": "node tests/four_human_completion_smoke.js"
+    "test:fullgame": "node tests/four_human_completion_smoke.js",
+    "test:spotlight": "node tests/spotlight_priority_regression.js",
+    "test:engine": "node tests/match_lifecycle_regression.js && node tests/game_engine_stress_regression.js && node tests/async_progress_smoke.js"
   },
   "dependencies": {
     "ws": "^8.18.0"
