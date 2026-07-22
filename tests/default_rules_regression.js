@@ -30,6 +30,8 @@ const sandbox = {
     if(name === 'crypto') return crypto;
     if(name === 'fs') return fs;
     if(name === 'path') return path;
+    if(name === './cpu_personality_dialogue') return require(path.join(root, 'cpu_personality_dialogue.js'));
+    if(name === './spotlight_priority') return require(path.join(root, 'spotlight_priority.js'));
     throw new Error(`Unexpected require: ${name}`);
   }
 };

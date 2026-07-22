@@ -3,28 +3,20 @@
 const assert=require('assert');
 const fs=require('fs');
 const path=require('path');
-const acorn=require('acorn');
-const csstree=require('css-tree');
-const parse5=require('parse5');
+const vm=require('vm');
 
 const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
 const serverSource=fs.readFileSync(path.join(root,'server.js'),'utf8');
-const document=parse5.parse(html);
-const ids=new Map();
-const styles=[];
-const scripts=[];
-let inlineClickCount=0;
 
-(function walk(node){
-  if(node.tagName==='style') styles.push((node.childNodes||[]).map(child=>child.value||'').join(''));
-  if(node.tagName==='script' && !(node.attrs||[]).some(attr=>attr.name==='src')) scripts.push((node.childNodes||[]).map(child=>child.value||'').join(''));
-  for(const attr of node.attrs||[]){
-    if(attr.name==='id') ids.set(attr.value,(ids.get(attr.value)||0)+1);
-    if(attr.name==='onclick') inlineClickCount++;
-  }
-  for(const child of node.childNodes||[]) walk(child);
-})(document);
+const styles=[...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map(m=>m[1]);
+const scripts=[...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
+const markupOnly=html
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')
+  .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'');
+const ids=new Map();
+for(const m of markupOnly.matchAll(/\bid\s*=\s*(["'])(.*?)\1/gi)) ids.set(m[2],(ids.get(m[2])||0)+1);
+const inlineClickCount=[...markupOnly.matchAll(/\bonclick\s*=/gi)].length;
 
 assert.strictEqual(styles.length,1,'one consolidated stylesheet expected');
 assert.strictEqual(scripts.length,1,'one consolidated client script expected');
@@ -33,22 +25,39 @@ assert.strictEqual(inlineClickCount,0,'inline click handlers are not allowed');
 assert.doesNotMatch(html,/\sonclick=/,'generated markup must also avoid inline click handlers');
 assert.doesNotMatch(scripts[0],/\balert\s*\(/,'blocking browser alerts must not interrupt play');
 
-for(const css of styles) csstree.parse(css,{positions:true});
-const serverAst=acorn.parse(serverSource,{ecmaVersion:'latest',sourceType:'script',locations:true});
-const clientAst=acorn.parse(scripts[0],{ecmaVersion:'latest',sourceType:'script',locations:true});
-
-function duplicateTopLevelFunctions(ast){
-  const names=new Map();
-  for(const node of ast.body){
-    if(node.type!=='FunctionDeclaration') continue;
-    const lines=names.get(node.id.name)||[];
-    lines.push(node.loc.start.line);
-    names.set(node.id.name,lines);
+function assertBalancedCss(css){
+  const cleaned=css
+    .replace(/\/\*[\s\S]*?\*\//g,'')
+    .replace(/"(?:\\.|[^"\\])*"/g,'""')
+    .replace(/'(?:\\.|[^'\\])*'/g,"''");
+  let depth=0;
+  for(const ch of cleaned){
+    if(ch==='{') depth++;
+    else if(ch==='}') depth--;
+    assert(depth>=0,'CSS contains an unexpected closing brace');
   }
-  return [...names].filter(([,lines])=>lines.length>1);
+  assert.strictEqual(depth,0,'CSS braces must be balanced');
 }
-assert.deepStrictEqual(duplicateTopLevelFunctions(serverAst),[],'server functions must not be silently overridden');
-assert.deepStrictEqual(duplicateTopLevelFunctions(clientAst),[],'client functions must not be silently overridden');
+for(const css of styles) assertBalancedCss(css);
+
+new vm.Script(serverSource,{filename:'server.js'});
+new vm.Script(scripts[0],{filename:'public/index.html#script'});
+
+function topLevelFunctionNames(source){
+  const names=new Map();
+  for(const m of source.matchAll(/^function\s+([A-Za-z_$][\w$]*)\s*\(/gm)){
+    const line=source.slice(0,m.index).split('\n').length;
+    const rows=names.get(m[1])||[];
+    rows.push(line);
+    names.set(m[1],rows);
+  }
+  return names;
+}
+function duplicates(source){
+  return [...topLevelFunctionNames(source)].filter(([,lines])=>lines.length>1);
+}
+assert.deepStrictEqual(duplicates(serverSource),[],'server functions must not be silently overridden');
+assert.deepStrictEqual(duplicates(scripts[0]),[],'client functions must not be silently overridden');
 
 assert.match(html,/viewport-fit=cover/);
 assert.match(html,/env\(safe-area-inset-bottom\)/);
@@ -64,8 +73,8 @@ console.log(JSON.stringify({
   htmlBytes:Buffer.byteLength(html),
   ids:ids.size,
   cssParsed:true,
-  serverFunctions:serverAst.body.filter(node=>node.type==='FunctionDeclaration').length,
-  clientFunctions:clientAst.body.filter(node=>node.type==='FunctionDeclaration').length,
+  serverFunctions:topLevelFunctionNames(serverSource).size,
+  clientFunctions:topLevelFunctionNames(scripts[0]).size,
   duplicateIds:0,
   duplicateFunctions:0,
   blockingAlerts:0

@@ -4,6 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>【ピピトリ】ピッグ・ピック・トリック</title>
+  <meta name="theme-color" content="#052f31" />
+  <meta name="application-name" content="ピピトリ" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ピピトリ" />
+  <link rel="manifest" href="/site.webmanifest?v=17" />
+  <link rel="icon" href="/favicon.ico?v=17" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/app-icon-32.png?v=17" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/app-icon-192.png?v=17" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=17" />
   <style>
 :root{--bg:#fff6e8;--ink:#3b2118;--red:#b64040;--pink:#ffd6d6;--gold:#d4a536;--line:#efc5a5;--green:#2e8c58;--blue:#4776b8;--shadow:0 8px 24px rgba(66,36,20,.14)}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#fffaf0,#ffeeda 55%,#ffd9cf);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;color:var(--ink)}
@@ -3260,8 +3270,8 @@ body.modern-game-ui .cardbox .cpu-character-note{
   to{transform:translateX(110%)}
 }
 @keyframes startReadyPulse{
-  from{transform:translateY(0) scale(1);filter:saturate(1)}
-  to{transform:translateY(-2px) scale(1.012);filter:saturate(1.15)}
+  from{filter:saturate(1) brightness(1)}
+  to{filter:saturate(1.12) brightness(1.04)}
 }
 @media (max-width:640px){
   .lobby-guide{
@@ -5260,6 +5270,44 @@ body.mad-impact-active .game-arena{animation:madArenaPulse .46s ease-in-out 2}
 @keyframes shootMoonImpact{0%{opacity:0;transform:scale(.35) rotate(-20deg)}65%{opacity:1;transform:scale(1.35) rotate(8deg)}100%{transform:scale(1) rotate(0)}}
 @keyframes shootImpactRing{0%{opacity:1;transform:scale(.2)}100%{opacity:0;transform:scale(2.3)}}
 
+.spotlight-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.spotlight-overlay{position:fixed;inset:0;z-index:9997;display:grid;place-items:center;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));pointer-events:none;overflow:hidden;isolation:isolate}
+.spotlight-overlay:empty{display:none}
+.spotlight-overlay .spotlight-scrim{position:absolute;inset:0;background:radial-gradient(circle at 50% 52%,rgba(255,236,159,.16),rgba(10,12,18,.34) 55%,rgba(4,7,11,.46));animation:spotlightScrimIn .18s ease-out both}
+.spotlight-overlay .spotlight-card{position:relative;display:grid;grid-template-columns:minmax(90px,170px) minmax(0,1fr);gap:14px;align-items:end;width:min(920px,calc(100vw - 24px));max-width:920px}
+.spotlight-overlay .spotlight-portrait{position:relative;align-self:end;justify-self:end;width:clamp(110px,19vw,182px);aspect-ratio:1/1;display:grid;place-items:end center;filter:drop-shadow(0 18px 24px rgba(0,0,0,.38));animation:spotlightPortraitFloat .5s ease-out both}
+.spotlight-overlay .spotlight-portrait:before{content:'';position:absolute;inset:auto 12% 2px 12%;height:14px;border-radius:50%;background:rgba(0,0,0,.28);filter:blur(8px);z-index:0}
+.spotlight-overlay .spotlight-portrait img,.spotlight-overlay .spotlight-portrait-fallback{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;border-radius:22px;border:3px solid rgba(255,255,255,.28);background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.02))}
+.spotlight-overlay .spotlight-portrait-fallback{display:grid;place-items:center;font-size:42px;font-weight:1000;color:#fff;background:linear-gradient(180deg,#41526b,#1d2433)}
+.spotlight-overlay .spotlight-bubble{position:relative;min-height:112px;padding:14px 18px 16px;border:4px solid rgba(255,255,255,.78);border-radius:28px;background:linear-gradient(180deg,#fffefb,#fff5d8 40%,#ffe9b0 100%);box-shadow:0 20px 44px rgba(0,0,0,.32),0 0 0 7px rgba(255,255,255,.11);color:#332114;animation:spotlightPanelIn .38s cubic-bezier(.18,1.08,.24,1) both}
+.spotlight-overlay .spotlight-bubble:after{content:'';position:absolute;left:-16px;bottom:18px;width:32px;height:32px;background:inherit;border-left:4px solid rgba(255,255,255,.78);border-bottom:4px solid rgba(255,255,255,.78);transform:rotate(45deg)}
+.spotlight-overlay .spotlight-kicker{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:999px;background:rgba(91,51,0,.1);color:#8a4a08;font-size:11px;font-weight:1000;letter-spacing:.08em}
+.spotlight-overlay .spotlight-name{margin-top:8px;font-size:clamp(19px,2.9vw,28px);font-weight:1000;line-height:1;color:#8f2e18;text-shadow:0 1px 0 rgba(255,255,255,.45)}
+.spotlight-overlay .spotlight-text{margin-top:6px;font-size:clamp(18px,2.4vw,30px);line-height:1.34;font-weight:1000;letter-spacing:.01em;word-break:break-word}
+.spotlight-overlay .spotlight-bubble.bubble-jagged{clip-path:polygon(0 10px,8px 0,100% 0,100% calc(100% - 10px),calc(100% - 8px) 100%,0 100%,0 54%);background:linear-gradient(180deg,#fffaf8,#ffd6d6 46%,#ffb2b2);border-color:#ffeaea;color:#4a1c1c}
+.spotlight-overlay .spotlight-bubble.bubble-burst{background:radial-gradient(circle at 50% 38%,#fffdf5,#ffe48d 72%,#ffd159)}
+.spotlight-overlay .spotlight-bubble.bubble-focus{background:linear-gradient(180deg,#fffefb,#ecf7ff 44%,#d9ecff);border-color:#dff0ff;color:#17334d}
+.spotlight-overlay .spotlight-bubble.bubble-scheme{background:linear-gradient(180deg,#fffefb,#ffe8f6 44%,#ffd2eb)}
+.spotlight-overlay .spotlight-bubble.bubble-impact{background:linear-gradient(180deg,#fffefb,#fff1cf 44%,#ffd67a)}
+.spotlight-overlay .spotlight-bubble.emotion-sad{background:linear-gradient(180deg,#fffefb,#e9f1ff 46%,#d9e3ff)}
+.spotlight-overlay .spotlight-bubble.emotion-anger .spotlight-name{color:#a11d1d}
+.spotlight-overlay.fade-out .spotlight-card{animation:spotlightPanelOut .3s ease-in both}.spotlight-overlay.fade-out .spotlight-scrim{animation:spotlightScrimOut .28s ease-in both}
+.spotlight-overlay.anim-zoom-in .spotlight-card{animation:spotlightZoomIn .34s cubic-bezier(.2,1.16,.24,1) both}
+.spotlight-overlay.anim-pop-up .spotlight-card{animation:spotlightPopIn .3s cubic-bezier(.18,1.12,.24,1) both}
+.spotlight-overlay.anim-bounce .spotlight-card{animation:spotlightBounceIn .46s cubic-bezier(.16,1.16,.25,1) both}
+.spotlight-overlay.anim-side-in .spotlight-card{animation:spotlightSideIn .34s cubic-bezier(.18,1.12,.24,1) both}
+.spotlight-overlay.anim-shock-in .spotlight-card{animation:spotlightShockIn .42s cubic-bezier(.18,1.12,.24,1) both}
+.spotlight-overlay.anim-victory-jump .spotlight-card{animation:spotlightBounceIn .5s cubic-bezier(.16,1.16,.25,1) both}
+.spotlight-overlay.anim-drop-in .spotlight-card{animation:spotlightDropIn .36s cubic-bezier(.18,1.08,.24,1) both}
+.spotlight-overlay.anim-shake-in .spotlight-card{animation:spotlightShakeIn .4s cubic-bezier(.18,1.08,.24,1) both}
+@keyframes spotlightScrimIn{from{opacity:0}to{opacity:1}}@keyframes spotlightScrimOut{to{opacity:0}}
+@keyframes spotlightPanelIn{0%{opacity:0;transform:translateY(18px) scale(.92)}100%{opacity:1;transform:none}}@keyframes spotlightPanelOut{to{opacity:0;transform:translateY(8px) scale(.95);filter:blur(1px)}}
+@keyframes spotlightPortraitFloat{0%{opacity:0;transform:translateY(22px) scale(.86)}100%{opacity:1;transform:none}}@keyframes spotlightZoomIn{0%{opacity:0;transform:scale(.78)}100%{opacity:1;transform:none}}@keyframes spotlightPopIn{0%{opacity:0;transform:translateY(20px) scale(.84)}72%{opacity:1;transform:translateY(-4px) scale(1.03)}100%{transform:none}}@keyframes spotlightBounceIn{0%{opacity:0;transform:translateY(30px) scale(.82)}65%{opacity:1;transform:translateY(-6px) scale(1.06)}100%{transform:none}}@keyframes spotlightSideIn{0%{opacity:0;transform:translateX(28px) scale(.94)}100%{opacity:1;transform:none}}@keyframes spotlightShockIn{0%{opacity:0;transform:scale(.86) rotate(-2deg)}28%{transform:scale(1.03) rotate(1deg)}42%{transform:scale(.98) translateX(-5px)}56%{transform:translateX(5px)}70%{transform:translateX(-3px)}84%{transform:translateX(3px)}100%{opacity:1;transform:none}}@keyframes spotlightDropIn{0%{opacity:0;transform:translateY(-18px) scale(.88)}100%{opacity:1;transform:none}}@keyframes spotlightShakeIn{0%{opacity:0;transform:translateY(6px) scale(.96)}25%{opacity:1;transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}100%{transform:none}}
+@media(max-width:640px){.spotlight-overlay .spotlight-card{grid-template-columns:84px minmax(0,1fr);gap:8px;width:calc(100vw - 14px);align-items:center}.spotlight-overlay .spotlight-portrait{width:84px}.spotlight-overlay .spotlight-bubble{min-height:84px;padding:10px 11px 11px;border-width:3px;border-radius:20px}.spotlight-overlay .spotlight-bubble:after{left:-11px;bottom:12px;width:22px;height:22px;border-left-width:3px;border-bottom-width:3px}.spotlight-overlay .spotlight-kicker{padding:3px 8px;font-size:8px}.spotlight-overlay .spotlight-name{margin-top:5px;font-size:17px}.spotlight-overlay .spotlight-text{margin-top:4px;font-size:15px;line-height:1.3}}
+@media(max-width:360px) and (orientation:portrait){.spotlight-overlay .spotlight-card{grid-template-columns:70px minmax(0,1fr)}.spotlight-overlay .spotlight-portrait{width:70px}.spotlight-overlay .spotlight-bubble{padding:9px 10px 10px}.spotlight-overlay .spotlight-kicker{font-size:7px}.spotlight-overlay .spotlight-name{font-size:15px}.spotlight-overlay .spotlight-text{font-size:13px}}
+@media(max-height:520px) and (orientation:landscape){.spotlight-overlay{padding:6px max(7px,env(safe-area-inset-right)) 6px max(7px,env(safe-area-inset-left))}.spotlight-overlay .spotlight-card{width:min(82vw,780px);grid-template-columns:74px minmax(0,1fr);gap:8px}.spotlight-overlay .spotlight-portrait{width:74px}.spotlight-overlay .spotlight-bubble{min-height:70px;padding:8px 10px 10px;border-width:3px;border-radius:16px}.spotlight-overlay .spotlight-bubble:after{left:-10px;bottom:11px;width:20px;height:20px;border-left-width:3px;border-bottom-width:3px}.spotlight-overlay .spotlight-kicker{padding:2px 7px;font-size:7px}.spotlight-overlay .spotlight-name{margin-top:3px;font-size:14px}.spotlight-overlay .spotlight-text{margin-top:3px;font-size:12px;line-height:1.24}}
+@media(prefers-reduced-motion:reduce){.spotlight-overlay *{animation:none!important;transition:none!important}}
+
 @media(max-width:640px){
   .moment-card{width:calc(100vw - 18px);padding:16px 11px 14px;border-width:3px;border-radius:22px}
   .moment-title{font-size:clamp(23px,8vw,34px)}.moment-owner{font-size:18px}.moment-copy{font-size:11px;margin-top:6px}
@@ -6657,6 +6705,216 @@ body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .commentary-a
   display:block!important;
   flex:none!important;
 }
+
+
+/* ============================================================
+   v16 CPU commentary: concise mobile copy + complete two-line text
+   ============================================================ */
+.commentary-compact-text{display:none}
+.commentary-full-text{display:inline}
+
+@media (max-width:720px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer{
+    max-height:77px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .table-commentary-list{
+    gap:3px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-bubble{
+    min-height:36px!important;
+    height:36px!important;
+    padding:3px 6px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body{
+    grid-template-columns:minmax(52px,auto) minmax(0,1fr)!important;
+    align-items:center!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body p{
+    display:-webkit-box!important;
+    -webkit-box-orient:vertical!important;
+    -webkit-line-clamp:2!important;
+    white-space:normal!important;
+    overflow:hidden!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    line-height:1.12!important;
+    max-height:2.24em!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-full-text{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-compact-text{display:inline!important}
+}
+
+/* 低い縦画面では従来のレール高を守り、短縮文を1行で完結させる。 */
+@media (max-width:430px) and (max-height:650px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer{
+    max-height:63px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-bubble{
+    min-height:29px!important;
+    height:29px!important;
+  }
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .commentary-layer .speech-body p{
+    display:block!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    max-height:none!important;
+  }
+}
+
+@media (max-width:932px) and (orientation:landscape){
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-full-text{display:none!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-compact-text{display:inline!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .commentary-layer .speech-body p{
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+}
+
+
+/* --- v23 SFC spotlight presentation --- */
+.spotlight-overlay{
+  --sfc-accent:#f6d46b;
+  --sfc-accent-soft:#fff0a6;
+  --sfc-panel:#101334;
+  --sfc-panel-2:#171a43;
+  --sfc-border:#eef1f5;
+  --sfc-border-dark:#535a67;
+  z-index:9999;
+  place-items:center;
+  font-family:ui-monospace,"SFMono-Regular","Hiragino Kaku Gothic ProN","Yu Gothic",monospace;
+}
+.spotlight-overlay.speaker-kamomodoki{--sfc-accent:#ff8078;--sfc-accent-soft:#ffc0bb}
+.spotlight-overlay.speaker-wakumodoki{--sfc-accent:#ffcf52;--sfc-accent-soft:#fff0a1}
+.spotlight-overlay.speaker-rikumodoki{--sfc-accent:#7eb9ff;--sfc-accent-soft:#c6e1ff}
+.spotlight-overlay .spotlight-scrim{
+  background:rgba(3,7,15,.42);
+}
+.spotlight-overlay .spotlight-scanlines{
+  position:absolute;inset:0;pointer-events:none;opacity:.19;mix-blend-mode:soft-light;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.09) 0 1px,transparent 1px 4px);
+  animation:sfcScanFlicker .7s steps(2,end) infinite;
+}
+.spotlight-overlay .spotlight-card{
+  display:grid;
+  grid-template-areas:"bubble" "portrait";
+  grid-template-columns:minmax(0,1fr);
+  justify-items:center;
+  align-items:start;
+  gap:0;
+  width:min(820px,calc(100vw - 24px));
+  max-width:820px;
+  filter:drop-shadow(0 14px 0 rgba(0,0,0,.28));
+}
+.spotlight-overlay .spotlight-bubble{
+  grid-area:bubble;
+  width:100%;
+  min-height:132px;
+  padding:18px 22px 20px;
+  border:4px solid var(--sfc-border);
+  border-radius:0;
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.025) 50%,transparent 50%) 0 0/8px 8px,
+    linear-gradient(180deg,var(--sfc-panel-2),var(--sfc-panel));
+  color:#fff;
+  box-shadow:
+    0 0 0 4px var(--sfc-border-dark),
+    0 0 0 8px #0a0b16,
+    inset 0 0 0 2px rgba(255,255,255,.12);
+  image-rendering:pixelated;
+  animation:sfcWindowIn .28s steps(5,end) both;
+}
+.spotlight-overlay .spotlight-bubble:before{
+  content:"";position:absolute;inset:6px;border:2px solid rgba(255,255,255,.13);pointer-events:none;
+}
+.spotlight-overlay .spotlight-bubble:after{
+  left:50%;bottom:-24px;width:30px;height:30px;
+  border:0;border-left:4px solid var(--sfc-border);border-bottom:4px solid var(--sfc-border);
+  background:var(--sfc-panel);transform:translateX(-50%) skew(-24deg) rotate(-45deg);
+  box-shadow:-4px 4px 0 var(--sfc-border-dark),-8px 8px 0 #0a0b16;
+}
+.spotlight-overlay .spotlight-pixel-corners{position:absolute;inset:0;pointer-events:none}
+.spotlight-overlay .spotlight-pixel-corners i{position:absolute;width:12px;height:12px;background:var(--sfc-accent);box-shadow:0 0 0 2px #0a0b16}
+.spotlight-overlay .spotlight-pixel-corners i:nth-child(1){left:10px;top:10px}
+.spotlight-overlay .spotlight-pixel-corners i:nth-child(2){right:10px;top:10px}
+.spotlight-overlay .spotlight-pixel-corners i:nth-child(3){left:10px;bottom:10px}
+.spotlight-overlay .spotlight-pixel-corners i:nth-child(4){right:10px;bottom:10px}
+.spotlight-overlay .spotlight-nameplate{
+  display:flex;align-items:center;gap:9px;min-width:0;margin-bottom:10px;padding-right:18px;
+  color:var(--sfc-accent-soft);font-weight:1000;letter-spacing:.04em;
+}
+.spotlight-overlay .spotlight-nameplate:before{content:"▶";color:var(--sfc-accent);font-size:13px}
+.spotlight-overlay .spotlight-name{margin:0;font-size:clamp(18px,2.6vw,27px);line-height:1;color:var(--sfc-accent);text-shadow:2px 2px 0 #000}
+.spotlight-overlay .spotlight-event-label{margin-left:auto;font-size:10px;color:#cfd4e1;letter-spacing:.15em;white-space:nowrap}
+.spotlight-overlay .spotlight-text{
+  min-height:2.7em;margin:0;padding:0 4px 0 8px;
+  color:#fff;font-size:clamp(20px,2.7vw,31px);line-height:1.38;font-weight:900;
+  letter-spacing:.035em;text-shadow:2px 2px 0 #000;word-break:normal;overflow-wrap:anywhere;
+}
+.spotlight-overlay .spotlight-cursor{
+  display:inline-block;margin-left:8px;color:var(--sfc-accent);font-size:.7em;vertical-align:.15em;
+  animation:sfcCursorBlink .55s steps(1,end) infinite;
+}
+.spotlight-overlay .spotlight-portrait{
+  grid-area:portrait;
+  justify-self:center;align-self:start;
+  width:clamp(150px,23vw,230px);
+  margin-top:18px;
+  aspect-ratio:1/1;
+  filter:drop-shadow(8px 9px 0 rgba(0,0,0,.38));
+  animation:sfcPortraitRise .42s steps(7,end) both;
+}
+.spotlight-overlay .spotlight-portrait:before{display:none}
+.spotlight-overlay .spotlight-portrait img,.spotlight-overlay .spotlight-portrait-fallback{
+  border:4px solid var(--sfc-border);border-radius:0;
+  box-shadow:0 0 0 4px var(--sfc-border-dark),0 0 0 8px #0a0b16;
+  image-rendering:pixelated;
+  background:#22263f;
+}
+.spotlight-overlay .spotlight-bubble.bubble-jagged{
+  clip-path:polygon(0 12px,12px 12px,12px 0,34px 0,34px 9px,56px 0,78px 9px,100px 0,122px 9px,144px 0,166px 9px,188px 0,210px 9px,232px 0,254px 9px,276px 0,298px 9px,320px 0,342px 9px,364px 0,386px 9px,408px 0,430px 9px,452px 0,474px 9px,496px 0,518px 9px,540px 0,562px 9px,584px 0,606px 9px,628px 0,650px 9px,672px 0,694px 9px,716px 0,738px 9px,760px 0,782px 9px,100% 0,100% calc(100% - 12px),calc(100% - 12px) calc(100% - 12px),calc(100% - 12px) 100%,0 100%);
+  background:linear-gradient(180deg,#2b1022,#160b20);
+  filter:drop-shadow(0 0 0 var(--sfc-border)) drop-shadow(0 8px 0 rgba(0,0,0,.45));
+}
+.spotlight-overlay .spotlight-bubble.bubble-burst{background:linear-gradient(180deg,#2c244a,#121537)}
+.spotlight-overlay .spotlight-bubble.bubble-focus{background:linear-gradient(180deg,#162d49,#0c1730)}
+.spotlight-overlay .spotlight-bubble.bubble-scheme{background:linear-gradient(180deg,#321d42,#17122f)}
+.spotlight-overlay .spotlight-bubble.bubble-impact{background:linear-gradient(180deg,#3a2a16,#18152d)}
+.spotlight-overlay .spotlight-bubble.emotion-sad{background:linear-gradient(180deg,#182c4b,#10152e)}
+.spotlight-overlay.emotion-anger .spotlight-card,.spotlight-overlay .emotion-anger{--sfc-accent:#ff6a62;--sfc-accent-soft:#ffc3be}
+.spotlight-overlay.anim-shock-in .spotlight-card,.spotlight-overlay.anim-shake-in .spotlight-card{animation:sfcImpactShake .42s steps(6,end) both}
+.spotlight-overlay.anim-victory-jump .spotlight-portrait,.spotlight-overlay.anim-bounce .spotlight-portrait{animation:sfcVictoryJump .5s steps(8,end) both}
+.spotlight-overlay.anim-drop-in .spotlight-portrait{animation:sfcSadDrop .44s steps(7,end) both}
+.spotlight-overlay.fade-out .spotlight-card{animation:sfcWindowOut .22s steps(4,end) both}
+.spotlight-overlay.fade-out .spotlight-scrim{animation:spotlightScrimOut .2s steps(3,end) both}
+@keyframes sfcWindowIn{0%{opacity:0;transform:scaleX(.1) scaleY(.12)}45%{opacity:1;transform:scaleX(1) scaleY(.12)}100%{transform:scale(1)}}
+@keyframes sfcWindowOut{0%{opacity:1;transform:scale(1)}65%{opacity:1;transform:scaleX(1) scaleY(.08)}100%{opacity:0;transform:scaleX(.05) scaleY(.08)}}
+@keyframes sfcPortraitRise{0%{opacity:0;transform:translateY(42px)}100%{opacity:1;transform:none}}
+@keyframes sfcVictoryJump{0%{opacity:0;transform:translateY(40px)}55%{opacity:1;transform:translateY(-18px)}72%{transform:translateY(4px)}86%{transform:translateY(-7px)}100%{transform:none}}
+@keyframes sfcSadDrop{0%{opacity:0;transform:translateY(-28px)}70%{opacity:1;transform:translateY(8px)}100%{transform:none}}
+@keyframes sfcImpactShake{0%{opacity:0;transform:scale(.8)}35%{opacity:1;transform:scale(1.04) translateX(-8px)}50%{transform:translateX(8px)}65%{transform:translateX(-5px)}80%{transform:translateX(4px)}100%{transform:none}}
+@keyframes sfcCursorBlink{0%,45%{opacity:1}46%,100%{opacity:0}}
+@keyframes sfcScanFlicker{0%{transform:translateY(0);opacity:.18}100%{transform:translateY(1px);opacity:.22}}
+@media(max-width:640px){
+  .spotlight-overlay .spotlight-card{width:calc(100vw - 18px)}
+  .spotlight-overlay .spotlight-bubble{min-height:112px;padding:14px 14px 16px;border-width:3px;box-shadow:0 0 0 3px var(--sfc-border-dark),0 0 0 6px #0a0b16,inset 0 0 0 2px rgba(255,255,255,.1)}
+  .spotlight-overlay .spotlight-bubble:after{left:50%;bottom:-18px;width:23px;height:23px;border-left-width:3px;border-bottom-width:3px;box-shadow:-3px 3px 0 var(--sfc-border-dark),-6px 6px 0 #0a0b16}
+  .spotlight-overlay .spotlight-nameplate{margin-bottom:7px}.spotlight-overlay .spotlight-name{font-size:17px}.spotlight-overlay .spotlight-event-label{font-size:8px}
+  .spotlight-overlay .spotlight-text{min-height:2.65em;font-size:15px;line-height:1.36;padding-left:4px}
+  .spotlight-overlay .spotlight-portrait{width:118px;margin-top:14px}
+  .spotlight-overlay .spotlight-pixel-corners i{width:8px;height:8px}.spotlight-overlay .spotlight-pixel-corners i:nth-child(1),.spotlight-overlay .spotlight-pixel-corners i:nth-child(3){left:7px}.spotlight-overlay .spotlight-pixel-corners i:nth-child(2),.spotlight-overlay .spotlight-pixel-corners i:nth-child(4){right:7px}
+}
+@media(max-height:520px) and (orientation:landscape){
+  .spotlight-overlay .spotlight-card{grid-template-areas:"portrait bubble";grid-template-columns:112px minmax(0,1fr);align-items:center;gap:16px;width:min(88vw,760px)}
+  .spotlight-overlay .spotlight-portrait{width:108px;margin:0}.spotlight-overlay .spotlight-bubble{min-height:94px;padding:11px 14px 13px}
+  .spotlight-overlay .spotlight-bubble:after{left:-17px;bottom:24px;width:22px;height:22px;transform:rotate(45deg);box-shadow:-3px 3px 0 var(--sfc-border-dark),-6px 6px 0 #0a0b16}
+  .spotlight-overlay .spotlight-name{font-size:15px}.spotlight-overlay .spotlight-event-label{font-size:7px}.spotlight-overlay .spotlight-text{font-size:13px;min-height:2.5em;line-height:1.3}
+}
+@media(prefers-reduced-motion:reduce){
+  .spotlight-overlay .spotlight-scanlines{display:none}.spotlight-overlay .spotlight-cursor{animation:none!important;opacity:1}
+}
+
 </style>
 </head>
 <body class="modern-game-ui">
@@ -6905,6 +7163,8 @@ let __lastScoreRenderKey='';
 let __lastShootPigEventId='';
 let __lastBabaDrawEventId='';
 let __lastMomentEventId='';
+let __lastSpotlightEventId='';
+let __scheduledSpotlightEventId='';
 let __lastLogRenderKey='';
 let __lastLastTrickKey='';
 let __lastLegacyPickKey='';
@@ -6934,13 +7194,14 @@ const faces=['🐷','🐱','🐶','🦊'];
 
 
 
-function applyResponsiveMode(){
-  if(typeof applyDeviceUiMode === 'function') applyDeviceUiMode();
+let __deviceUiRaf=0;
+function scheduleDeviceUiMode(){
+  if(__deviceUiRaf) return;
+  __deviceUiRaf=window.requestAnimationFrame(()=>{
+    __deviceUiRaf=0;
+    applyDeviceUiMode();
+  });
 }
-
-window.addEventListener('resize', applyResponsiveMode);
-document.addEventListener('DOMContentLoaded', applyResponsiveMode);
-window.addEventListener('orientationchange', applyResponsiveMode);
 
 
 
@@ -7006,9 +7267,9 @@ function applyDeviceUiMode(){
     if(state) requestAnimationFrame(()=>renderHand());
   }
 }
-window.addEventListener('resize', applyDeviceUiMode);
-window.addEventListener('orientationchange', applyDeviceUiMode);
-document.addEventListener('DOMContentLoaded', applyDeviceUiMode);
+window.addEventListener('resize', scheduleDeviceUiMode, {passive:true});
+window.addEventListener('orientationchange', scheduleDeviceUiMode, {passive:true});
+document.addEventListener('DOMContentLoaded', scheduleDeviceUiMode, {once:true});
 
 function hypeToast(text, tone='info'){
   const old=document.querySelector('.hype-toast');
@@ -7134,6 +7395,15 @@ function deactivateReconnectInfo(){
       localStorage.removeItem(LEGACY_RECONNECT_KEY);
     }
   }catch(e){}
+  updateReconnectButton();
+}
+
+function clearReconnectInfo(){
+  try{
+    localStorage.removeItem(RECONNECT_KEY);
+    localStorage.removeItem(LEGACY_RECONNECT_KEY);
+  }catch(e){}
+  resumeToken='';
   updateReconnectButton();
 }
 
@@ -7773,13 +8043,31 @@ $('join').onclick=()=>{
   const sameRoom=saved && saved.code===enteredCode;
   connect(()=>send({type:'join', name:$('name').value, code:enteredCode, playerId:sameRoom ? saved.playerId : null, resumeToken:sameRoom ? saved.resumeToken || '' : ''}));
 };
-$('start').onclick=()=>{ 
+function setStartRequestUi(starting){
   const btn=$('start');
-  if(btn && !btn.disabled){
-    btn.classList.add('is-starting');
-    btn.textContent='ゲーム開始中…';
+  if(!btn) return;
+  btn.classList.toggle('is-starting',!!starting);
+  btn.setAttribute('aria-busy',starting?'true':'false');
+  btn.textContent=starting?'ゲーム開始中…':'4人で遊ぶ';
+}
+$('start').onclick=()=>{
+  const btn=$('start');
+  if(!btn || btn.disabled || btn.classList.contains('is-starting')) return;
+  setStartRequestUi(true);
+  btn.disabled=true;
+  window.clearTimeout(window.__startRequestTimer);
+  if(!send({type:'start'})){
+    setStartRequestUi(false);
+    btn.disabled=!(isHost() && state?.phase==='lobby' && state?.players?.length===4);
+    return;
   }
-  send({type:'start'});
+  window.__startRequestTimer=window.setTimeout(()=>{
+    if(state?.phase==='lobby'){
+      setStartRequestUi(false);
+      btn.disabled=!(isHost() && state.players.length===4);
+      hypeToast('開始処理の応答がありません。接続状態を確認してもう一度試してください。','danger');
+    }
+  },6000);
 };
 $('addCpu').onclick=()=>send({type:'addCpu'});
 $('removeCpu').onclick=()=>send({type:'removeCpu'});
@@ -8418,11 +8706,17 @@ function render(){
     __lastMessageText = messageText;
     $('message').textContent=messageText;
   }
-  $('start').disabled = !(isHost() && state.phase==='lobby' && state.players.length===4);
+  const startBtn=$('start');
+  const canStart=isHost() && state.phase==='lobby' && state.players.length===4;
+  if(state.phase!=='lobby'){
+    window.clearTimeout(window.__startRequestTimer);
+    setStartRequestUi(false);
+  }
+  if(startBtn) startBtn.disabled=startBtn.classList.contains('is-starting') ? true : !canStart;
   $('addCpu').disabled = !(isHost() && state.phase==='lobby' && state.players.length<4);
   $('removeCpu').disabled = !(isHost() && state.phase==='lobby' && state.players.some(p=>p.cpu));
   updateLobbyActionUi(); renderRoundStatus(); renderRoundModal(); renderSelectedRuleSummary();
-  renderShootPigOverlay(); renderBabaDrawOverlay(); renderMomentOverlay(); renderCommentary(); renderPlayers(); renderLastTrick(); renderTable(); renderSceneEffects(); normalizeTableBadges(); fixPickTargetBadgePosition(); renderHand(); renderPick(); renderLog(); renderScore(); hypeByState();
+  renderShootPigOverlay(); renderBabaDrawOverlay(); renderMomentOverlay(); renderSpotlightOverlay(); renderCommentary(); renderPlayers(); renderLastTrick(); renderTable(); renderSceneEffects(); normalizeTableBadges(); fixPickTargetBadgePosition(); renderHand(); renderPick(); renderLog(); renderScore(); hypeByState();
   if(state.trickReview && state.trickReview.until > Date.now() && !window.__reviewTimer){
     window.__reviewTimer = setInterval(()=>{
       if(!state || !state.trickReview || state.trickReview.until <= Date.now()){
@@ -8536,14 +8830,14 @@ function renderMomentOverlay(){
     effectVibrate([24,42,24,55,38]);
   }
 
-  const holdMs=type==='pair' ? 2450 : 3200;
+  const holdMs=type==='pair' ? 1600 : 2050;
   window.__momentOverlayTimer=window.setTimeout(()=>{
     if(root.dataset.active!=='1') return;
     root.classList.add('fade-out');
     document.body.classList.remove('pair-impact-active','mad-impact-active');
     window.__momentOverlayClearTimer=window.setTimeout(()=>{
       root.innerHTML='';root.dataset.active='0';root.classList.remove('fade-out');
-    },520);
+    },360);
   },holdMs);
 }
 
@@ -8604,9 +8898,139 @@ function renderBabaDrawOverlay(){
         root.innerHTML='';
         root.dataset.active='0';
         root.classList.remove('fade-out');
-      }, 700);
+      }, 450);
     }
-  }, 4200);
+  }, 2600);
+}
+
+function stopSpotlightTyping(){
+  if(window.__spotlightTypeTimer){
+    window.clearInterval(window.__spotlightTypeTimer);
+    window.__spotlightTypeTimer=null;
+  }
+}
+
+function clearSpotlightOverlay(root, {cancelStart=true}={}){
+  if(cancelStart) window.clearTimeout(window.__spotlightStartTimer);
+  window.clearTimeout(window.__spotlightOverlayTimer);
+  window.clearTimeout(window.__spotlightOverlayClearTimer);
+  stopSpotlightTyping();
+  __scheduledSpotlightEventId='';
+  if(!root) return;
+  root.innerHTML='';
+  root.dataset.active='0';
+  root.dataset.eventId='';
+  root.className='spotlight-overlay';
+}
+
+function typeSpotlightText(root, fullText, duration){
+  stopSpotlightTyping();
+  const target=root?.querySelector('.spotlight-typed-text');
+  if(!target) return;
+  const chars=Array.from(String(fullText || ''));
+  const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  if(reduce || chars.length<2){ target.textContent=chars.join(''); return; }
+  const available=Math.max(500,Number(duration || 2600)-500);
+  const speed=Math.max(8,Math.min(25,Math.floor(available/Math.max(1,chars.length))));
+  const step=chars.length>58 ? 2 : 1;
+  let index=0;
+  target.textContent='';
+  window.__spotlightTypeTimer=window.setInterval(()=>{
+    index=Math.min(chars.length,index+step);
+    target.textContent=chars.slice(0,index).join('');
+    if(index>=chars.length) stopSpotlightTyping();
+  },speed);
+}
+
+function renderSpotlightOverlay(){
+  const root=$('spotlightOverlay');
+  if(!root || !state) return;
+  const ev=state.spotlightEvent;
+  // 中央セリフは対戦中だけ。ラウンド結果・最終結果・ロビーへ持ち越さない。
+  if(state.phase!=='playing' || !ev){
+    clearSpotlightOverlay(root);
+    return;
+  }
+  const key=String(ev.id || `${state.code}:${state.round}:${ev.speakerPid ?? 'cpu'}:${ev.text || ''}`);
+  const now=Date.now();
+  const remainingMs=Number(ev.expiresAt || 0)-now;
+  const waitMs=Math.max(0,Number(ev.startsAt || 0)-now);
+  if(root.dataset.active==='1' && root.dataset.eventId && root.dataset.eventId!==key) clearSpotlightOverlay(root);
+  if(__scheduledSpotlightEventId && __scheduledSpotlightEventId!==key){
+    window.clearTimeout(window.__spotlightStartTimer);
+    __scheduledSpotlightEventId='';
+  }
+  if(remainingMs<=280 || remainingMs<=waitMs+220){
+    window.clearTimeout(window.__spotlightStartTimer);
+    __scheduledSpotlightEventId='';
+    __lastSpotlightEventId=key;
+    return;
+  }
+  if(waitMs>20){
+    if(__scheduledSpotlightEventId!==key){
+      window.clearTimeout(window.__spotlightStartTimer);
+      __scheduledSpotlightEventId=key;
+      window.__spotlightStartTimer=window.setTimeout(()=>{
+        __scheduledSpotlightEventId='';
+        renderSpotlightOverlay();
+      },waitMs+12);
+    }
+    return;
+  }
+  window.clearTimeout(window.__spotlightStartTimer);
+  __scheduledSpotlightEventId='';
+  if(__lastSpotlightEventId===key) return;
+  __lastSpotlightEventId=key;
+  const cpuKey=safeCssToken(ev.cpuKey || 'cpu','cpu');
+  const bubbleStyle=safeCssToken(ev.bubbleStyle || 'normal','normal');
+  const animation=safeCssToken(ev.animation || 'slide-up','slide-up');
+  const emotion=safeCssToken(ev.emotion || 'normal','normal');
+  const duration=Math.max(280,Math.min(Number(ev.durationMs || 2600),Number(ev.expiresAt || 0)-Date.now()));
+  const speaker=String(ev.speakerName || 'CPU');
+  const fullText=String(ev.text || '');
+  const portrait=ev.portraitPath
+    ? `<img src="${escAttr(ev.portraitPath)}" alt="" class="spotlight-portrait-img" loading="eager" decoding="async">`
+    : `<div class="spotlight-portrait-fallback" aria-hidden="true">${esc(speaker.slice(0,1))}</div>`;
+  const labelMap={resultJoker:'BABA!',babaReveal:'BABA!',madPig:'MAD PIG',resultPair:'PAIR!',pairClean:'PAIR!',trickWin:'WIN',trickWeak:'WEAKEST',pickWin:'PICK',pickWatch:'PICK',watchDrama:'COMMENT'};
+  root.dataset.active='1';
+  root.dataset.eventId=key;
+  root.className=`spotlight-overlay speaker-${cpuKey} emotion-${emotion} anim-${animation}`;
+  root.innerHTML=`
+    <div class="spotlight-visually-hidden">${esc(`${speaker}。${fullText}`)}</div>
+    <div class="spotlight-scrim" aria-hidden="true"></div>
+    <div class="spotlight-scanlines" aria-hidden="true"></div>
+    <div class="spotlight-card" aria-hidden="true">
+      <div class="spotlight-bubble bubble-${bubbleStyle} emotion-${emotion}">
+        <div class="spotlight-pixel-corners"><i></i><i></i><i></i><i></i></div>
+        <div class="spotlight-nameplate"><span class="spotlight-name">${esc(speaker)}</span><span class="spotlight-event-label">${esc(labelMap[ev.eventType] || 'ひとこと')}</span></div>
+        <div class="spotlight-text"><span class="spotlight-typed-text"></span><span class="spotlight-cursor">▼</span></div>
+      </div>
+      <div class="spotlight-portrait">${portrait}</div>
+    </div>`;
+  const portraitImg=root.querySelector('.spotlight-portrait img');
+  if(portraitImg){
+    portraitImg.addEventListener('error',()=>{
+      const fallback=document.createElement('div');
+      fallback.className='spotlight-portrait-fallback';
+      fallback.setAttribute('aria-hidden','true');
+      fallback.textContent=speaker.slice(0,1);
+      portraitImg.replaceWith(fallback);
+    },{once:true});
+  }
+  typeSpotlightText(root,fullText,duration);
+  window.clearTimeout(window.__spotlightOverlayTimer);
+  window.clearTimeout(window.__spotlightOverlayClearTimer);
+  window.__spotlightOverlayTimer=window.setTimeout(()=>{
+    if(root.dataset.active==='1' && root.dataset.eventId===key){
+      stopSpotlightTyping();
+      const typed=root.querySelector('.spotlight-typed-text');
+      if(typed) typed.textContent=fullText;
+      root.classList.add('fade-out');
+      window.__spotlightOverlayClearTimer=window.setTimeout(()=>{
+        if(root.dataset.eventId===key) clearSpotlightOverlay(root,{cancelStart:false});
+      },280);
+    }
+  },duration);
 }
 
 function renderShootPigOverlay(){
@@ -8846,7 +9270,7 @@ function renderCommentary(){
   const el=$('tableCommentary');
   if(!el) return;
   const list=(state.commentary||[]).slice(0,2);
-  const key = list.map(c=>`${c.pid}:${c.text}:${c.mood||''}:${c.intensity||''}:${c.eventKey||''}:${c.expiresAt||''}`).join('|');
+  const key = list.map(c=>`${c.pid}:${c.text}:${c.compactText||''}:${c.mood||''}:${c.intensity||''}:${c.eventKey||''}:${c.expiresAt||''}`).join('|');
   if(key === __lastCommentaryRenderKey) return;
   __lastCommentaryRenderKey = key;
   if(!list.length){ el.className='commentary-layer'; el.innerHTML=''; return; }
@@ -8869,7 +9293,7 @@ function renderCommentary(){
         return `<div class="speech-bubble ${safeCssToken(c.cpuKey,'cpu')} mood-${mood} intensity-${intensity} event-${eventKey} from-${position} ${idx===0?'latest':''}">
         <span class="speech-cue" aria-hidden="true">${esc(c.icon || '💬')}</span>
         <div class="speech-face">${avatar(c)}</div>
-        <div class="speech-body"><div class="speech-meta"><b title="${escAttr(c.name)}">${esc(c.name)}</b><span class="speech-tag">${esc(c.label || 'COMMENT')}</span></div><p title="${escAttr(c.text)}" aria-label="${escAttr(c.text)}">${esc(c.text)}</p></div>
+        <div class="speech-body"><div class="speech-meta"><b title="${escAttr(c.name)}">${esc(c.name)}</b><span class="speech-tag">${esc(c.label || 'COMMENT')}</span></div><p title="${escAttr(c.text)}" aria-label="${escAttr(c.text)}"><span class="commentary-full-text">${esc(c.text)}</span><span class="commentary-compact-text">${esc(c.compactText || c.text)}</span></p></div>
       </div>`;}).join('')}
     </div>
   </div>`;
@@ -9532,11 +9956,14 @@ function renderScore(){
       </div>
       <div class="final-actions">
         <button type="button" class="btn secondary" data-scroll-top>上に戻る</button>
-        <button type="button" class="btn" data-new-game>新しい部屋で遊ぶ</button>
+        ${isHost()
+          ? `<button type="button" class="btn" data-rematch>同じメンバー・同じルールで再戦</button>`
+          : `<button type="button" class="btn" disabled aria-disabled="true" title="ホストが再戦を開始できます">ホストの再戦操作を待つ</button>`}
+        <button type="button" class="btn secondary" data-new-game>新しい部屋で遊ぶ</button>
       </div>
     </div>
   `;
-  const key = JSON.stringify((state.players||[]).map(p=>[p.name,p.final?.total,p.final?.completedRoundCardScore,p.final?.jokerPenalty,p.final?.madPigPenalty,p.final?.shootPigPenalty,p.final?.shootPigActivatedRounds?.join(',')]).concat([state.jokerPenaltyTiming,state.shootThePigEnabled,state.madPigEnabled,state.penaltyMode,state.roundDealMode]));
+  const key = JSON.stringify((state.players||[]).map(p=>[p.name,p.connected,p.final?.total,p.final?.completedRoundCardScore,p.final?.jokerPenalty,p.final?.madPigPenalty,p.final?.shootPigPenalty,p.final?.shootPigActivatedRounds?.join(',')]).concat([state.hostId,state.you,state.jokerPenaltyTiming,state.shootThePigEnabled,state.madPigEnabled,state.penaltyMode,state.roundDealMode]));
   if(key === __lastScoreRenderKey) return;
   __lastScoreRenderKey = key;
   $('score').innerHTML = scoreHtml;
@@ -9547,8 +9974,30 @@ document.addEventListener('click', ev=>{
     ev.preventDefault();
     window.scrollTo({top:0,behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth'});
   }
+  const rematchBtn=ev.target?.closest?.('[data-rematch]');
+  if(rematchBtn){
+    ev.preventDefault();
+    if(rematchBtn.disabled) return;
+    rematchBtn.disabled=true;
+    rematchBtn.setAttribute('aria-busy','true');
+    rematchBtn.textContent='再戦を準備中…';
+    if(!send({type:'rematch'})){
+      rematchBtn.disabled=false;rematchBtn.removeAttribute('aria-busy');rematchBtn.textContent='同じメンバー・同じルールで再戦';
+    }else{
+      window.clearTimeout(window.__rematchRequestTimer);
+      window.__rematchRequestTimer=window.setTimeout(()=>{
+        if(state?.phase==='finished'){
+          __lastScoreRenderKey='';renderScore();
+          hypeToast('再戦を開始できませんでした。全員の接続状態を確認してください。','danger');
+        }
+      },6000);
+    }
+  }
   if(ev.target?.closest?.('[data-new-game]')){
     ev.preventDefault();
+    clearReconnectInfo();
+    intentionalClose=true;
+    try{ ws?.close?.(); }catch(e){}
     location.reload();
   }
 });
@@ -9604,6 +10053,7 @@ window.addEventListener('load', ()=>{
   </div>
 </div>
 
+<div id="spotlightOverlay" class="spotlight-overlay" data-active="0" role="status" aria-live="polite"></div>
 <div id="momentOverlay" class="moment-overlay" data-active="0" role="status" aria-live="polite"></div>
 <div id="shootPigOverlay" class="shoot-pig-overlay" data-active="0" role="status" aria-live="polite"></div>
 <div id="babaDrawOverlay" class="baba-draw-overlay" data-active="0" role="status" aria-live="polite"></div>
