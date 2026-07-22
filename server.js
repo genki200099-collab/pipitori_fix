@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const WebSocket = require('ws');
+const { PERSONA_PROFILES, createPersonaLine, getSpotlightPresentation } = require('./cpu_personality_dialogue');
+const { chooseSpotlightCandidate } = require('./spotlight_priority');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -13,6 +15,7 @@ const STATIC_CONTENT_TYPES = {
   '.css':'text/css; charset=utf-8',
   '.js':'text/javascript; charset=utf-8',
   '.json':'application/json; charset=utf-8',
+  '.webmanifest':'application/manifest+json; charset=utf-8',
   '.png':'image/png',
   '.jpg':'image/jpeg',
   '.jpeg':'image/jpeg',
@@ -55,6 +58,37 @@ const WS_HEARTBEAT_MAX_MISSES = Math.max(2, Math.min(6, Number(process.env.WS_HE
 const DISCONNECTED_ACTION_GRACE_MS = positiveDuration(process.env.DISCONNECTED_ACTION_GRACE_MS, 45 * 1000);
 const ROUND_END_AUTO_CONTINUE_MS = positiveDuration(process.env.ROUND_END_AUTO_CONTINUE_MS, 45 * 1000);
 const ROOM_EMPTY_TTL_MS = positiveDuration(process.env.ROOM_EMPTY_TTL_MS, 10 * 60 * 1000);
+
+
+// 同じ目的の短時間タスクをキーで一元管理し、再送や監視処理からの重複予約を防ぐ。
+function transientTaskStore(room){
+  if(!room) return null;
+  if(!(room.transientTimers instanceof Map)) room.transientTimers=new Map();
+  return room.transientTimers;
+}
+function scheduleRoomTask(room, key, delayMs, task, {replace=false}={}){
+  const store=transientTaskStore(room);
+  if(!store || !key || typeof task!=='function') return null;
+  if(store.has(key)){
+    if(!replace) return store.get(key);
+    clearTimeout(store.get(key));
+    store.delete(key);
+  }
+  const handle=setTimeout(()=>{
+    if(store.get(key)!==handle) return;
+    store.delete(key);
+    try{ task(); }catch(error){ console.error(`room task failed: ${key}`,error); }
+  },Math.max(0,Number(delayMs)||0));
+  handle.unref?.();
+  store.set(key,handle);
+  return handle;
+}
+function clearTransientRoomTasks(room){
+  const store=room?.transientTimers;
+  if(!(store instanceof Map)) return;
+  for(const handle of store.values()) clearTimeout(handle);
+  store.clear();
+}
 
 const wsHeartbeatTimer = setInterval(()=>{
   for(const client of wss.clients){
@@ -171,6 +205,180 @@ function pickResultDisplayMs(room, result){
   if(result?.paired) return 3400;
   if(room?.madPigEnabled !== false && isMadPig(result?.drawn)) return 4200;
   return 2600;
+}
+
+
+function spotlightDurationMs(plan){
+  if(!plan) return 2600;
+  const key = String(plan.eventType || '').toLowerCase();
+  if(key.includes('joker') || key.includes('baba')) return 3200;
+  if(key.includes('pair')) return 3000;
+  if(key.includes('madpig') || key.includes('shoot')) return 3200;
+  return 2600;
+}
+
+function spotlightTimingAfterPick(room, drawn, paired=false){
+  // 専用演出が十分見えた後に中央セリフを開始し、退場まで次トリック前に完了させる。
+  if(drawn?.joker) return {delayMs:3100,durationMs:1350};
+  if(paired) return {delayMs:1950,durationMs:1100};
+  if(room?.madPigEnabled !== false && isMadPig(drawn)) return {delayMs:2450,durationMs:1300};
+  return {delayMs:100,durationMs:2100};
+}
+
+function registerSpotlightEvent(room, payload){
+  if(!room || !payload || !payload.text) return null;
+  const durationMs = Math.max(800, Math.min(4500, Number(payload.durationMs) || 2600));
+  const delayMs = Math.max(0, Math.min(5000, Number(payload.delayMs) || 0));
+  const startsAt = Date.now() + delayMs;
+  const event = {
+    id: payload.id || `spotlight-${room.round || 1}-${payload.speakerPid ?? 'cpu'}-${uid()}`,
+    speakerPid: payload.speakerPid,
+    speakerName: payload.speakerName || '',
+    cpuKey: payload.cpuKey || null,
+    text: payload.text,
+    emotion: payload.emotion || 'normal',
+    portraitPath: payload.portraitPath || null,
+    bubbleStyle: payload.bubbleStyle || 'normal',
+    animation: payload.animation || 'slide-up',
+    priority: Number(payload.priority || 0),
+    selectionScore: Number(payload.selectionScore || 0),
+    eventType: payload.eventType || 'normal',
+    source: payload.source || 'trick',
+    createdAt: Date.now(),
+    startsAt,
+    expiresAt: startsAt + durationMs,
+    durationMs,
+    delayMs
+  };
+  room.spotlightEvent = event;
+  room.lastSpotlightSpeakerPid = Number.isInteger(payload.speakerPid) ? payload.speakerPid : null;
+  room.spotlightHistory = Array.isArray(room.spotlightHistory) ? room.spotlightHistory : [];
+  room.spotlightHistory.unshift({pid:event.speakerPid,eventType:event.eventType,round:room.round || 1,at:event.createdAt});
+  room.spotlightHistory = room.spotlightHistory.slice(0,12);
+  room.spotlightRoundCounts = room.spotlightRoundCounts || {};
+  room.spotlightRoundCounts[event.speakerPid] = Number(room.spotlightRoundCounts[event.speakerPid] || 0) + 1;
+  return event;
+}
+
+function chooseSpotlightPlan(room, plans){
+  return chooseSpotlightCandidate(room, plans, Math.random);
+}
+
+function triggerSpotlight(room, plans, options={}){
+  const plan = chooseSpotlightPlan(room, plans);
+  if(!plan) return null;
+  return registerSpotlightEvent(room, Object.assign({}, plan, {
+    eventType: options.eventType || plan.eventType || 'normal',
+    source: options.source || plan.source || 'trick',
+    durationMs: options.durationMs || spotlightDurationMs(plan),
+    delayMs: options.delayMs || 0
+  }));
+}
+
+function spotlightPlan(room, pid, type, ctx, meta={}){
+  const plan=cpuSpotlightPlanFor(room,pid,type,Object.assign({},ctx,meta));
+  return plan ? Object.assign({eventType:type},plan,meta) : null;
+}
+
+function spotlightPlansAfterTrick(room, winnerPid, weakestPid, winnerCard, weakestCard, options={}){
+  const wp=room?.players?.[winnerPid];
+  const lp=room?.players?.[weakestPid];
+  if(!wp || !lp) return [];
+  const cpuPids=(room.players || []).map((p,i)=>p?.cpu ? i : -1).filter(i=>i>=0);
+  const dramaticMad=options.capturedMadPig === true;
+  const base={
+    winner:wp.name, weakest:lp.name, target:lp.name, card:winnerCard,
+    actorPid:winnerPid, affectedPid:weakestPid, targetPid:weakestPid,
+    drama:dramaticMad ? 28 : 6
+  };
+  const plans=[];
+  if(wp.cpu){
+    const type=dramaticMad ? 'madPig' : 'trickWin';
+    const plan=spotlightPlan(room,winnerPid,type,base,{role:'winner',relevance:dramaticMad?42:28});
+    if(plan) plans.push(plan);
+  }
+  if(lp.cpu){
+    const plan=spotlightPlan(room,weakestPid,'trickWeak',Object.assign({},base,{card:weakestCard,target:wp.name}),{role:'weakest',relevance:34});
+    if(plan) plans.push(plan);
+  }
+  for(const pid of cpuPids){
+    if(pid===winnerPid || pid===weakestPid) continue;
+    const plan=spotlightPlan(room,pid,dramaticMad?'madPig':'watchDrama',Object.assign({},base,{target:lp.name}),{
+      role:cpuCharacter(room.players[pid])?.key==='rikumodoki'?'analyst':'witness',
+      relevance:dramaticMad?27:13
+    });
+    if(plan) plans.push(plan);
+  }
+  return plans;
+}
+
+function spotlightPlansAfterPick(room, pp, drawn, paired=false){
+  if(!room || !pp || !drawn) return [];
+  const wp = room.players?.[pp.winnerPid];
+  const lp = room.players?.[pp.weakestPid];
+  if(!wp || !lp) return [];
+  const cpuPids = (room.players || []).map((p,i)=>p?.cpu ? i : -1).filter(i=>i >= 0);
+  const otherCpuPids = cpuPids.filter(i=>i !== pp.winnerPid);
+  const baseCtx = {
+    winner: wp.name, weakest: lp.name, target: lp.name, drawn, card: drawn,
+    actorPid:pp.winnerPid, affectedPid:pp.winnerPid, targetPid:pp.weakestPid
+  };
+  const plans = [];
+
+  if(drawn.joker){
+    if(wp.cpu){
+      const plan=spotlightPlan(room,pp.winnerPid,'resultJoker',Object.assign({},baseCtx,{target:wp.name}),{role:'victim',relevance:55,drama:44,mustSpeak:true});
+      if(plan) plans.push(plan);
+    }
+    otherCpuPids.forEach(i=>{
+      const plan=spotlightPlan(room,i,'babaReveal',Object.assign({},baseCtx,{target:wp.name,targetPid:pp.winnerPid}),{
+        role:cpuCharacter(room.players[i])?.key==='rikumodoki'?'analyst':'witness',relevance:30,drama:40
+      });
+      if(plan) plans.push(plan);
+    });
+    return plans;
+  }
+
+  if(room.madPigEnabled !== false && isMadPig(drawn)){
+    if(wp.cpu){
+      const type=paired ? 'resultPair' : 'madPig';
+      const plan=spotlightPlan(room,pp.winnerPid,type,baseCtx,{role:'affected',relevance:paired?48:52,drama:38,mustSpeak:true});
+      if(plan) plans.push(plan);
+    }
+    otherCpuPids.forEach(i=>{
+      const plan=spotlightPlan(room,i,'madPig',Object.assign({},baseCtx,{target:wp.name,targetPid:pp.winnerPid}),{
+        role:cpuCharacter(room.players[i])?.key==='rikumodoki'?'analyst':'witness',relevance:29,drama:35
+      });
+      if(plan) plans.push(plan);
+    });
+    return plans;
+  }
+
+  if(paired){
+    if(wp.cpu){
+      const plan=spotlightPlan(room,pp.winnerPid,'resultPair',baseCtx,{role:'actor',relevance:48,drama:24,mustSpeak:true});
+      if(plan) plans.push(plan);
+    }
+    otherCpuPids.forEach(i=>{
+      const plan=spotlightPlan(room,i,'pairClean',Object.assign({},baseCtx,{target:wp.name,targetPid:pp.winnerPid}),{
+        role:cpuCharacter(room.players[i])?.key==='rikumodoki'?'analyst':'witness',relevance:18,drama:18
+      });
+      if(plan) plans.push(plan);
+    });
+    return plans;
+  }
+
+  if(wp.cpu){
+    const plan=spotlightPlan(room,pp.winnerPid,'pickWin',baseCtx,{role:'actor',relevance:33,drama:8});
+    if(plan) plans.push(plan);
+  }
+  otherCpuPids.forEach(i=>{
+    const plan=spotlightPlan(room,i,'pickWatch',Object.assign({},baseCtx,{target:wp.name,targetPid:pp.winnerPid}),{
+      role:cpuCharacter(room.players[i])?.key==='rikumodoki'?'analyst':'witness',relevance:12,drama:5
+    });
+    if(plan) plans.push(plan);
+  });
+  return plans;
 }
 
 function cloneCardWithFreshId(card){
@@ -304,6 +512,72 @@ function commentPresentation(text, meta={}){
   };
 }
 
+function compactCpuComment(text, eventKey='default'){
+  let line = String(text || '').replace(/\s+/g, ' ').trim();
+  if(!line) return '';
+
+  // 実況レールでは話者名が別表示されるため、呼びかけを省いて要点を残す。
+  line = line
+    .replace(/^[^、。！？]{1,16}さん[、，]\s*/, '')
+    .replace(/^[^、。！？]{1,16}さんの袋から/, '袋から')
+    .replace(/^[^、。！？]{1,16}さんを/, '')
+    .replace(/^[^、。！？]{1,16}さん方面へ[、，]?\s*/, '')
+    .replace(/💧スートは失点が重いです。[ ]*/g, '')
+    .replace(/ぬかるみスートは失点が重いです。[ ]*/g, '')
+    .replace(/危険札と手札枚数を再点検します。?/g, '危険札を再点検します。')
+    .replace(/ピック工程に入ります。?/g, '1枚ピックします。')
+    .replace(/裏向きで1枚選びます。1枚ピックします。/g, '裏向きで1枚ピックします。')
+    .replace(/候補選定に入ります。?/g, '候補を選びます。')
+    .replace(/進捗を止めません。?/g, '進めます。')
+    .replace(/締切内に決めます。?/g, 'すぐ決めます。')
+    .replace(/^ごめん[！!、，\s]*/g, '')
+    .replace(/自由なら大胆にいくぞぉ〜/g, '大胆にいくぞぉ〜')
+    .replace(/私なら当たりを引ける/g, '当たりを引くぞぉ〜')
+    .replace(/想定外ですが処理します/g, '想定外ですが対応します')
+    .replace(/ここからは一手の影響が大きいです/g, '一手の影響が大きいです')
+    .replace(/そのピック、めちゃくちゃ盛り上がる気がする/g, 'そのピック、盛り上がりそう！')
+    .replace(/ここで取ったら盛り上がるよね？ 取ります/g, 'ここは取ります！')
+    .replace(/丸メガネは見えてます。未来が！/g, '未来が見えてます！')
+    .replace(/計画を更新します。?/g, '計画更新です。')
+    .replace(/議事録に残します。?/g, '記録します。')
+    .replace(/リカバリープランを立てます。?/g, '立て直します。')
+    .replace(/\s+([、。！？])/g, '$1')
+    .trim();
+
+  // 危険な💧札は、カード情報を最優先して一目で読める文へまとめる。
+  if(['card-danger','mud-penalty'].includes(eventKey) || line.includes('失点が重い')){
+    const mud = line.match(/(?:^|\s)(\d{1,2})\s*💧|💧\s*(\d{1,2})/);
+    const val = mud && (mud[1] || mud[2]);
+    if(val) return `💧${val}を処理します。`;
+  }
+
+  const eventFallbacks = {
+    pick:'裏向きで1枚ピックします。',
+    watch:'ピックを見届けます。',
+    'target-select':'候補2枚を選びます。',
+    'pair-clean':'ペア浄化します。',
+    'round-end':'ラウンド終了です。',
+    reconnect:'接続を確認します。'
+  };
+
+  const chars = [...line];
+  const MAX = 24;
+  if(chars.length <= MAX) return line;
+
+  // 完結した短い文が先頭にあれば、途中で切らずその文を採用する。
+  const sentences = line.match(/[^。！？]+[。！？]/g) || [];
+  const complete = sentences.find(part => [...part].length >= 7 && [...part].length <= MAX);
+  if(complete) return complete.trim();
+
+  if(eventFallbacks[eventKey]) return eventFallbacks[eventKey];
+
+  // 人格を表す短い語尾は可能な範囲で残す。
+  const suffix = line.includes('✊🏻') ? '✊🏻' : line.endsWith('♡') ? '♡' : '';
+  const budget = Math.max(8, MAX - [...suffix].length - 1);
+  const clipped = chars.slice(0, budget).join('').replace(/[、，\s]+$/,'');
+  return `${clipped}…${suffix}`;
+}
+
 function say(room, pid, text, meta={}){
   const p = room.players[pid]; if(!p || !text) return;
   const ch = cpuCharacter(p);
@@ -312,6 +586,7 @@ function say(room, pid, text, meta={}){
     pid,
     name:p.name,
     text,
+    compactText:compactCpuComment(text, presentation.eventKey),
     cpuKey: ch?.key || null,
     avatar: cpuAvatar(p),
     avatarImage: ch?.imagePath || null,
@@ -399,7 +674,7 @@ const CPU_CHARACTERS = [
     gender:'female',
     style:'attack',
     title:'駆け引き・挑発型',
-    personality:'甘い口調で危険札を仕込み、相手のピンチを楽しむ策士。',
+    personality:PERSONA_PROFILES.kamomodoki.summary,
     catchphrase:'マストフォローは祝福です♡',
     motto:['人の不幸は蜜の味','下家のデスロード']
   },
@@ -410,7 +685,7 @@ const CPU_CHARACTERS = [
     gender:'female',
     style:'bold',
     title:'直感・大胆型',
-    personality:'勢いとひらめきで高札もコンボも狙う、場を沸かせる挑戦者。',
+    personality:PERSONA_PROFILES.wakumodoki.summary,
     catchphrase:'やるぞぉ〜✊🏻',
     motto:['できるぞぉ〜✊🏻','あたしゃ、魔神だよ…']
   },
@@ -421,7 +696,7 @@ const CPU_CHARACTERS = [
     gender:'male',
     style:'steady',
     title:'分析・堅実型',
-    personality:'危険札と進行を冷静に管理し、最小コストで勝ち筋を組み立てる。',
+    personality:PERSONA_PROFILES.rikumodoki.summary,
     catchphrase:'進捗確認します。',
     motto:['締切厳守','計画通りに進めましょう']
   }
@@ -637,6 +912,56 @@ function cpuCommentChance(room, base=.36){
 }
 
 
+function cpuPersonaLineFor(room, pid, type, ctx={}){
+  const p = room?.players?.[pid];
+  const ch = cpuCharacter(p);
+  if(!p || !ch) return null;
+  const recent = (room.commentary || [])
+    .filter(item=>item && item.cpuKey===ch.key && item.text)
+    .slice(0,6)
+    .map(item=>item.text);
+  const fullCtx = Object.assign({
+    speaker:p.name,
+    target:ctx.target || cpuNextName(room, pid),
+    winner:ctx.winner || '勝者',
+    weakest:ctx.weakest || '最弱',
+    card:ctx.card ? cardText(ctx.card) : 'この札',
+    drawn:ctx.drawn ? cardText(ctx.drawn) : 'この札',
+    round:room.round || 1,
+    remaining:Array.isArray(p.hand) ? p.hand.length : '数',
+    penalty:room.jokerPenalty ?? 20,
+    mode:roomPenaltyLabel(room)
+  }, ctx || {});
+  return createPersonaLine(ch.key, type, fullCtx, recent);
+}
+
+function cpuSpotlightPlanFor(room, pid, type, ctx={}){
+  const p = room?.players?.[pid];
+  const ch = cpuCharacter(p);
+  if(!p || !ch) return null;
+  const text = cpuPersonaLineFor(room, pid, type, ctx);
+  if(!text) return null;
+  const presentation = getSpotlightPresentation(ch.key, type);
+  return {
+    speakerPid:pid,
+    cpuKey:ch.key,
+    speakerName:p.name,
+    text,
+    emotion:presentation.emotion,
+    portraitPath:`/cpu_characters/spotlight/${ch.key}/${presentation.imageFile}`,
+    bubbleStyle:presentation.bubble,
+    animation:presentation.animation,
+    priority:presentation.priority,
+    eventType:type,
+    role:ctx.role || 'observer',
+    actorPid:Number.isInteger(ctx.actorPid) ? ctx.actorPid : null,
+    affectedPid:Number.isInteger(ctx.affectedPid) ? ctx.affectedPid : null,
+    targetPid:Number.isInteger(ctx.targetPid) ? ctx.targetPid : null,
+    relevance:Number(ctx.relevance || 0),
+    drama:Number(ctx.drama || 0)
+  };
+}
+
 function cpuStrategyLineFor(room, pid, type, ctx={}){
   const p = room.players[pid];
   const ch = cpuCharacter(p);
@@ -649,6 +974,8 @@ function cpuStrategyLineFor(room, pid, type, ctx={}){
   const round = room.round || 1;
   const mode = roomPenaltyLabel(room);
   const penalty = room.jokerPenalty ?? 20;
+  const personaLine = cpuPersonaLineFor(room, pid, type, ctx);
+  if(personaLine && Math.random() < .76) return personaLine;
 
   if(ch.key === 'kamomodoki'){
     if(type==='shootThreat') return sample([
@@ -810,7 +1137,12 @@ function cpuLineFor(room, pid, type, ctx={}){
   const drawnText = ctx.drawn ? cardText(ctx.drawn) : '';
   const round = room.round || 1;
 
-  // 新しい状況特化コメントを優先
+  // 追加プロフィールを反映した大規模な状況別コメントを優先。
+  // 既存コメントも残し、毎回同じ口癖だけにならないよう混在させる。
+  const personaLine = cpuPersonaLineFor(room, pid, type, ctx);
+  if(personaLine && Math.random() < .74) return personaLine;
+
+  // 従来の状況特化コメントも引き続き利用する。
   const strategic = cpuStrategyLineFor(room, pid, type, ctx);
   if(strategic) return strategic;
 
@@ -1138,6 +1470,7 @@ function publicState(room, viewerId){
     shootPigEvent: room.shootPigEvent && room.shootPigEvent.expiresAt > Date.now() ? room.shootPigEvent : null,
     madPigEvent: room.madPigEvent && room.madPigEvent.expiresAt > Date.now() ? room.madPigEvent : null,
     pairCleanEvent: room.pairCleanEvent && room.pairCleanEvent.expiresAt > Date.now() ? room.pairCleanEvent : null,
+    spotlightEvent: room.spotlightEvent && room.spotlightEvent.expiresAt > Date.now() ? room.spotlightEvent : null,
     initialPairDiscardEnabled: room.initialPairDiscardEnabled === true,
     passThreeEnabled: room.passThreeEnabled === true,
     roundDealMode: normalizeRoundDealMode(room.roundDealMode),
@@ -1498,7 +1831,12 @@ function scheduleRoomCleanup(room){
     const current = rooms.get(room.code);
     if(!current || current !== room) return;
     const stillEmpty = room.players.every(p=>p.cpu || !isOpenWs(p.ws));
-    if(stillEmpty && room.emptySince === emptySince) rooms.delete(room.code);
+    if(stillEmpty && room.emptySince === emptySince){
+      clearAllProgressTimers(room);
+      room.spotlightEvent=null;
+      room.pendingSpotlightPlans=null;
+      rooms.delete(room.code);
+    }
   }, ROOM_EMPTY_TTL_MS);
   room.cleanupTimer.unref?.();
 }
@@ -1661,13 +1999,14 @@ function autoResolveCpuPickTargets(room, pp){
   if(!room || !pp || !pp.targetSelectionRequired || pp.targetSelectionDone) return;
   const weakest = room.players[pp.weakestPid];
   if(!weakest || !weakest.cpu) return;
-  setTimeout(()=>{
+  const token=pp.token || `pick-${pp.createdAt || Date.now()}-${pp.winnerPid}-${pp.weakestPid}`;
+  scheduleRoomTask(room, `cpu-target-${token}`, 700, ()=>{
     if(room.phase !== 'playing') return;
     if(room.pendingPick !== pp || pp.result || pp.targetSelectionDone) return;
     const ids = chooseCpuPickTargetIds(room, pp.weakestPid, pp.targetCount);
     say(room, pp.weakestPid, cpuStrategyLineFor(room, pp.weakestPid, 'targetSelectSmart', {target:room.players[pp.winnerPid]?.name}) || cpuLineFor(room, pp.weakestPid, 'targetSelect', {target:room.players[pp.winnerPid]?.name}) || '候補を選びます。', {eventKey:'target-select'});
     submitPickTargets(room, weakest.id, ids, true);
-  }, 700);
+  });
 }
 
 
@@ -1694,7 +2033,7 @@ function roomOptionSummary(room){
 function createRoom(ws, name, totalRounds=3, madPigEnabled=true, jokerPenalty=-20, initialPairDiscardEnabled=false, passThreeEnabled=false, penaltyMode='mud6', pickTargetCount=2, jokerPenaltyTiming='perRound', shootThePigEnabled=true, roundDealMode='reshuffle'){
   const c = code();
   const id = uid();
-  const room = {code:c, hostId:id, players:[], phase:'lobby', round:1, totalRounds: normalizeRoundCount(totalRounds), roundDealMode:normalizeRoundDealMode(roundDealMode), madPigEnabled: normalizeMadPigEnabled(madPigEnabled), jokerPenalty: normalizeJokerPenalty(jokerPenalty), jokerPenaltyTiming: normalizeJokerPenaltyTiming(jokerPenaltyTiming), shootThePigEnabled: normalizeMadPigEnabled(madPigEnabled) && normalizeShootThePigEnabled(shootThePigEnabled), initialPairDiscardEnabled: normalizeInitialPairDiscardEnabled(initialPairDiscardEnabled), passThreeEnabled: normalizePassThreeEnabled(passThreeEnabled), penaltyMode: normalizePenaltyMode(penaltyMode), pickTargetCount: normalizePickTargetCount(pickTargetCount), initialPairDone:[], passDone:[], passSelections:{}, lead:0, current:0, leadSuit:null, trick:[], stock:[], log:[], message:'4人そろったら開始できます。人が足りない場合はCPUを追加できます。', pendingPick:null, commentary:[], lastTrick:null, shootPigEvent:null, madPigEvent:null, pairCleanEvent:null, emptySince:null, cleanupTimer:null};
+  const room = {code:c, hostId:id, players:[], phase:'lobby', round:1, totalRounds: normalizeRoundCount(totalRounds), roundDealMode:normalizeRoundDealMode(roundDealMode), madPigEnabled: normalizeMadPigEnabled(madPigEnabled), jokerPenalty: normalizeJokerPenalty(jokerPenalty), jokerPenaltyTiming: normalizeJokerPenaltyTiming(jokerPenaltyTiming), shootThePigEnabled: normalizeMadPigEnabled(madPigEnabled) && normalizeShootThePigEnabled(shootThePigEnabled), initialPairDiscardEnabled: normalizeInitialPairDiscardEnabled(initialPairDiscardEnabled), passThreeEnabled: normalizePassThreeEnabled(passThreeEnabled), penaltyMode: normalizePenaltyMode(penaltyMode), pickTargetCount: normalizePickTargetCount(pickTargetCount), initialPairDone:[], passDone:[], passSelections:{}, lead:0, current:0, leadSuit:null, trick:[], stock:[], log:[], message:'4人そろったら開始できます。人が足りない場合はCPUを追加できます。', pendingPick:null, commentary:[], lastTrick:null, shootPigEvent:null, madPigEvent:null, pairCleanEvent:null, spotlightEvent:null, pendingSpotlightPlans:null, spotlightHistory:[], spotlightRoundCounts:{}, lastSpotlightSpeakerPid:null, transientTimers:new Map(), emptySince:null, cleanupTimer:null};
   const player = {id, resumeToken:newResumeToken(), name: cleanName(name), ws, cpu:false, disconnectedAt:null, hand:[], scorePile:[], pairs:[], completedRoundCardScoreBank:0, jokerPenaltyBank:0, shootPigPenaltyBank:0, shootPigFinalMadPigWaived:false, shootPigGameEndJokerWaived:false, shootPigActivatedRounds:[], out:false};
   room.players.push(player); rooms.set(c, room); ws.roomCode=c; ws.playerId=id;
   log(room, `${player.name} が部屋を作りました。${roomOptionSummary(room)}`); send(ws,'created',{code:c, playerId:id, name:player.name, resumeToken:player.resumeToken}); broadcast(room);
@@ -1774,12 +2113,14 @@ function clearReviewTimer(room){
   }
 }
 function clearAllProgressTimers(room){
+  if(!room) return;
   clearReviewTimer(room);
   clearPickFinishTimer(room);
   if(room.cpuTimer){ clearTimeout(room.cpuTimer); room.cpuTimer=null; }
   if(room.cpuPickTimer){ clearTimeout(room.cpuPickTimer); room.cpuPickTimer=null; }
   if(room.cpuPickFailSafeTimer){ clearTimeout(room.cpuPickFailSafeTimer); room.cpuPickFailSafeTimer=null; }
   if(room.recoverTimer){ clearTimeout(room.recoverTimer); room.recoverTimer=null; }
+  clearTransientRoomTasks(room);
 }
 function ensurePickFinish(room, pp, winnerPid, delay=2600){
   clearPickFinishTimer(room);
@@ -1857,6 +2198,8 @@ function advanceReviewToPick(room, reviewToken, winnerPid, weakestPid){
 
   if(endCandidatePid(room) >= 0){
     room.pendingPick = null;
+    room.spotlightEvent = null;
+    room.pendingSpotlightPlans = null;
     checkRoundEnd(room);
     broadcast(room);
     return;
@@ -1892,11 +2235,19 @@ function advanceReviewToPick(room, reviewToken, winnerPid, weakestPid){
       const line = cpuPickLine(room, winnerPid, weakestPid); if(line) say(room, winnerPid, line, {eventKey:'pick'});
       ensureCpuPick(room);
       broadcast(room);
-      // readyAtを過ぎた状態を全員に再送する。Edge/PCのローカル時計差対策。
-      setTimeout(()=>broadcast(room), 1850);
-      setTimeout(()=>broadcast(room), 2300);
+      // readyAtを過ぎた状態を全員に再送する。キー付き予約で重複タイマーを防ぐ。
+      const pickToken=room.pendingPick.token;
+      scheduleRoomTask(room, `pick-ready-${pickToken}-1`, 1850, ()=>{
+        if(room.phase==='playing' && room.pendingPick?.token===pickToken) broadcast(room);
+      });
+      scheduleRoomTask(room, `pick-ready-${pickToken}-2`, 2300, ()=>{
+        if(room.phase==='playing' && room.pendingPick?.token===pickToken) broadcast(room);
+      });
     }
   } else {
+    // ピックなしでラウンド終了へ向かう場合も、古い中央セリフを結果画面へ残さない。
+    room.spotlightEvent = null;
+    room.pendingSpotlightPlans = null;
     finishAfterPick(room, winnerPid);
   }
 }
@@ -2270,41 +2621,75 @@ function doCpuPick(room){
 
 
 
-function startGame(room, requesterId){
-  if(room.hostId !== requesterId) return;
-  if(room.players.length !== 4) { room.message='4人そろうと開始できます。足りない席はCPUを追加してください。'; broadcast(room); return; }
+function initializeMatch(room, {rematch=false}={}){
   clearAllProgressTimers(room);
-  room.phase='playing'; room.round=1; room.lead=Math.floor(Math.random()*4); room.current=room.lead; room.trick=[]; room.leadSuit=null; room.pendingPick=null; room.trickReview=null; room.stock=[];
-  room.roundEndSummary=null; room.finalRoundSummary=null; room.roundEndOutPid=null; room.roundEndDeferred=null; room.initialPairDone=[]; room.passDone=[]; room.passSelections={};
-  room.roundStart = null; room.shootPigRoundResults={}; room.shootPigEvent=null; room.madPigEvent=null; room.pairCleanEvent=null;
-  room.lastHumanTurnRebroadcastAt = 0; room.lastNoPlayableRebroadcastAt = 0;
-  for(const p of room.players){ p.hand=[]; p.scorePile=[]; p.pairs=[]; p.completedRoundCardScoreBank=0; p.jokerPenaltyBank=0; p.shootPigPenaltyBank=0; p.shootPigFinalMadPigWaived=false; p.shootPigGameEndJokerWaived=false; p.shootPigActivatedRounds=[]; p.out=false; p.final=null; }
+  room.phase='playing';
+  room.round=1;
+  room.lead=Math.floor(Math.random()*4);
+  room.current=room.lead;
+  room.trick=[];
+  room.leadSuit=null;
+  room.pendingPick=null;
+  room.trickReview=null;
+  room.spotlightEvent=null;
+  room.pendingSpotlightPlans=null;
+  room.spotlightHistory=[];
+  room.spotlightRoundCounts={};
+  room.lastSpotlightSpeakerPid=null;
+  room.stock=[];
+  room.roundEndSummary=null;
+  room.finalRoundSummary=null;
+  room.roundEndOutPid=null;
+  room.roundEndDeferred=null;
+  room.initialPairDone=[];
+  room.passDone=[];
+  room.passSelections={};
+  room.roundStart=null;
+  room.shootPigRoundResults={};
+  room.shootPigEvent=null;
+  room.madPigEvent=null;
+  room.pairCleanEvent=null;
+  room.lastHumanTurnRebroadcastAt=0;
+  room.lastNoPlayableRebroadcastAt=0;
+  for(const p of room.players){
+    p.hand=[];p.scorePile=[];p.pairs=[];p.completedRoundCardScoreBank=0;p.jokerPenaltyBank=0;p.shootPigPenaltyBank=0;
+    p.shootPigFinalMadPigWaived=false;p.shootPigGameEndJokerWaived=false;p.shootPigActivatedRounds=[];p.out=false;p.final=null;
+  }
   dealInitial(room);
-  log(room, `収穫祭スタート！${roomOptionSummary(room)}。通常カードを1枚抜き、全員13枚で開始します。`);
+  log(room, `${rematch?'同じメンバーで再戦！':'収穫祭スタート！'}${roomOptionSummary(room)}。通常カードを1枚抜き、全員13枚で開始します。`);
 
   if(room.passThreeEnabled){
-    room.phase='passing';
-    room.setupPhaseStartedAt=Date.now();
-    room.current=null;
+    room.phase='passing';room.setupPhaseStartedAt=Date.now();room.current=null;
     room.message='3枚パス：ババブタ以外から3枚選んでください。';
     log(room, '3枚パスあり。各プレイヤーは次の手番の人へ通常カードを3枚渡します。ババブタは渡せません。');
-    autoResolveCpuPasses(room);
-    maybeFinishPassPhase(room);
-    return;
+    autoResolveCpuPasses(room);maybeFinishPassPhase(room);return true;
   }
-
   if(room.initialPairDiscardEnabled){
-    room.phase='initialPair';
-    room.setupPhaseStartedAt=Date.now();
-    room.current=null;
+    room.phase='initialPair';room.setupPhaseStartedAt=Date.now();room.current=null;
     room.message='開始時ペア捨て：ペアを捨てるかスキップしてください。';
     log(room, '開始時ペア捨てあり。各プレイヤーは任意で手札の同じ数字ペアを捨てられます。');
-    autoResolveCpuInitialPairs(room);
-    maybeFinishInitialPairPhase(room);
-    return;
+    autoResolveCpuInitialPairs(room);maybeFinishInitialPairPhase(room);return true;
   }
-
   beginPlayingAfterSetup(room);
+  return true;
+}
+
+function startGame(room, requesterId){
+  if(!room || room.hostId !== requesterId) return false;
+  // 開始メッセージの連打・遅延到着で、進行中のゲームを再配札しない。
+  if(room.phase !== 'lobby') return false;
+  if(room.players.length !== 4){
+    room.message='4人そろうと開始できます。足りない席はCPUを追加してください。';broadcast(room);return false;
+  }
+  return initializeMatch(room,{rematch:false});
+}
+
+function rematchGame(room, requesterId){
+  if(!room || room.hostId !== requesterId || room.phase !== 'finished') return false;
+  if(room.players.length !== 4){room.message='再戦には4人必要です。';broadcast(room);return false;}
+  const missing=room.players.filter(p=>!p.cpu && !isPlayerConnectedForProgress(p));
+  if(missing.length){room.message=`${missing.map(p=>p.name).join('・')} の再接続後に再戦できます。`;broadcast(room);return false;}
+  return initializeMatch(room,{rematch:true});
 }
 
 
@@ -2792,6 +3177,7 @@ function resolveTrick(room){
   wp.scorePile.push(...core.map(x=>x.card));
   const capturedMadPig = room.madPigEnabled !== false ? core.map(x=>x.card).find(isMadPig) : null;
   if(capturedMadPig) registerMadPigEvent(room, winner.pid, capturedMadPig, 'trick');
+  room.pendingSpotlightPlans = spotlightPlansAfterTrick(room, winner.pid, weakest.pid, winner.card, weakest.card, {capturedMadPig:!!capturedMadPig});
   log(room, `👑 ${wp.name} が勝利。場の4枚をごちそう山へ。`);
   log(room, `💀 最弱は ${lp.name}（${cardText(weakest.card)}）。`);
   room.message = `トリック終了！ 👑勝者は ${wp.name}、💀最弱は ${lp.name}。5秒後にババ抜きピックへ進みます。`;
@@ -2823,6 +3209,9 @@ function completePickWithoutPair(room, pp, drawn){
     if(cpu){ const ci=room.players.indexOf(cpu); say(room, ci, cpuStrategyLineFor(room, ci, 'babaReveal', {target:wp.name, drawn}) || resultLine(drawn, false, room, ci), {eventKey:'baba'}); }
   }
   room.message = text;
+  const spotlightTiming = spotlightTimingAfterPick(room, drawn, false);
+  triggerSpotlight(room, [...(room.pendingSpotlightPlans || []), ...spotlightPlansAfterPick(room, pp, drawn, false)], {source:'pick', ...spotlightTiming});
+  room.pendingSpotlightPlans = null;
   broadcast(room);
   ensurePickFinish(room, pp, pp.winnerPid, pickResultDisplayMs(room, pp.result));
 }
@@ -2851,6 +3240,9 @@ function completePickWithPair(room, pp, drawn, pairCard){
     if(cpu){ const ci=room.players.indexOf(cpu); say(room, ci, resultLine(drawn, true, room, ci), {eventKey:'pair'}); }
   }
   room.message = text;
+  const spotlightTiming = spotlightTimingAfterPick(room, drawn, true);
+  triggerSpotlight(room, [...(room.pendingSpotlightPlans || []), ...spotlightPlansAfterPick(room, pp, drawn, true)], {source:'pick', ...spotlightTiming});
+  room.pendingSpotlightPlans = null;
   assertUniqueActiveCards(room, 'ペア選択後');
   broadcast(room);
   ensurePickFinish(room, pp, pp.winnerPid, pickResultDisplayMs(room, pp.result));
@@ -2926,8 +3318,13 @@ function submitPickTargets(room, playerId, cardIds, silent=false){
   const line = cpuPickLine(room, pp.winnerPid, pp.weakestPid); if(line) say(room, pp.winnerPid, line, {eventKey:'pick'});
   ensureCpuPick(room);
   broadcast(room);
-  setTimeout(()=>broadcast(room), 950);
-  setTimeout(()=>broadcast(room), 1300);
+  const pickToken=pp.token;
+  scheduleRoomTask(room, `target-ready-${pickToken}-1`, 950, ()=>{
+    if(room.phase==='playing' && room.pendingPick?.token===pickToken) broadcast(room);
+  });
+  scheduleRoomTask(room, `target-ready-${pickToken}-2`, 1300, ()=>{
+    if(room.phase==='playing' && room.pendingPick?.token===pickToken) broadcast(room);
+  });
 }
 
 
@@ -2992,11 +3389,12 @@ function doPick(room, playerId, targetIndex){
 
     // CPUは停止しないよう、同じ数字があれば先頭候補で自動ペア浄化する。
     if(wp.cpu){
-      setTimeout(()=>{
+      const pairToken=pp.token || `pair-${pp.createdAt || Date.now()}-${pp.winnerPid}`;
+      scheduleRoomTask(room, `cpu-pair-${pairToken}`, 900, ()=>{
         if(room.phase === 'playing' && room.pendingPick === pp && pp.pairChoice && !pp.result){
           completePickWithPair(room, pp, drawn, chooseCpuPairCardForDiscard(room, wp, drawn, candidatesForPair) || candidatesForPair[0]);
         }
-      }, 900);
+      });
     }
 
     broadcast(room);
@@ -3011,25 +3409,24 @@ function finishAfterPick(room, winnerPid){
   clearReviewTimer(room);
   clearPickFinishTimer(room);
   clearCpuPickTimer(room);
+  const fallbackPlans=Array.isArray(room.pendingSpotlightPlans) ? room.pendingSpotlightPlans.slice() : [];
+  room.pendingSpotlightPlans=null;
   if(room.cpuPickFailSafeTimer){ clearTimeout(room.cpuPickFailSafeTimer); room.cpuPickFailSafeTimer=null; }
   if(!room.pendingPick && !room.trick.length) return;
   room.pendingPick=null;
-  room.lastPickTargetRebroadcastAt = 0;
-  room.lastPairChoiceRebroadcastAt = 0;
-  if(checkRoundEnd(room)) { broadcast(room); return; }
-  room.trick=[]; room.leadSuit=null;
-  if(!Number.isInteger(winnerPid) || winnerPid < 0 || winnerPid >= room.players.length) winnerPid = room.lead ?? 0;
-  room.lead=winnerPid; room.current=winnerPid;
-  // ババブタ1枚だけは『次の手番開始時』に終了。手番設定直後に判定して、
-  // 出せるカード0枚の手番が一瞬表示される状態を防ぐ。
-  if(checkRoundEnd(room, winnerPid)){
-    broadcast(room);
-    return;
+  room.lastPickTargetRebroadcastAt=0;
+  room.lastPairChoiceRebroadcastAt=0;
+  if(checkRoundEnd(room)){ room.spotlightEvent=null; broadcast(room); return; }
+  if(!room.spotlightEvent && fallbackPlans.length){
+    triggerSpotlight(room,fallbackPlans,{source:'trick',durationMs:1800});
   }
-  room.message = `${room.players[winnerPid].name} が次のリードです。`;
+  room.trick=[];room.leadSuit=null;
+  if(!Number.isInteger(winnerPid) || winnerPid<0 || winnerPid>=room.players.length) winnerPid=room.lead ?? 0;
+  room.lead=winnerPid;room.current=winnerPid;
+  if(checkRoundEnd(room,winnerPid)){room.spotlightEvent=null;broadcast(room);return;}
+  room.message=`${room.players[winnerPid].name} が次のリードです。`;
   broadcast(room);
 }
-
 
 
 
@@ -3151,6 +3548,9 @@ function beginNextRound(room){
   room.leadSuit = null;
   room.pendingPick = null;
   room.trickReview = null;
+  room.spotlightEvent = null;
+  room.pendingSpotlightPlans = null;
+  room.spotlightRoundCounts = {};
   room.roundEndSummary = null;
   room.roundEndOutPid = null;
   room.roundEndDeferred = null;
@@ -3296,6 +3696,9 @@ function checkRoundEnd(room, preferredPid=null){
   const out = room.players[outPid];
   const onlyJoker = isJokerOnlyHand(out);
   clearAllProgressTimers(room);
+  // ラウンド結果・最終結果へ、直前トリックの中央セリフを持ち越さない。
+  room.spotlightEvent = null;
+  room.pendingSpotlightPlans = null;
   room.pendingPick = null;
   room.trickReview = null;
   room.trick = [];
@@ -3396,6 +3799,7 @@ wss.on('connection', (ws) => {
         return send(ws,'errorMsg',{message:'この接続は別の画面へ引き継がれました。操作を続けるには再接続してください。'});
       }
       if(msg.type==='start') startGame(room, ws.playerId);
+      if(msg.type==='rematch') rematchGame(room, ws.playerId);
       if(msg.type==='addCpu') addCpu(room, ws.playerId);
       if(msg.type==='removeCpu') removeCpu(room, ws.playerId);
       if(msg.type==='play') playCard(room, ws.playerId, msg.cardId);
