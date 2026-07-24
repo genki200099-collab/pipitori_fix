@@ -59,6 +59,8 @@ const DISCONNECTED_ACTION_GRACE_MS = positiveDuration(process.env.DISCONNECTED_A
 const ROUND_END_AUTO_CONTINUE_MS = positiveDuration(process.env.ROUND_END_AUTO_CONTINUE_MS, 45 * 1000);
 const ROOM_EMPTY_TTL_MS = positiveDuration(process.env.ROOM_EMPTY_TTL_MS, 10 * 60 * 1000);
 const SPOTLIGHT_DISPLAY_MS = 2200;
+const MAX_WS_MESSAGE_BYTES = 64 * 1024;
+const DUPLICATE_ACTION_WINDOW_MS = 160;
 
 
 // 同じ目的の短時間タスクをキーで一元管理し、再送や監視処理からの重複予約を防ぐ。
@@ -3808,6 +3810,31 @@ function score(room){
 
 
 
+function clientMessageByteLength(raw){
+  if(Buffer.isBuffer(raw)) return raw.length;
+  if(ArrayBuffer.isView(raw)) return raw.byteLength;
+  if(raw instanceof ArrayBuffer) return raw.byteLength;
+  return Buffer.byteLength(String(raw || ''),'utf8');
+}
+function clientActionSignature(msg){
+  if(!msg || msg.type === 'ping') return '';
+  const type=String(msg.type || '');
+  const mutationTypes=new Set(['start','rematch','addCpu','removeCpu','play','pick','pickTargets','pairChoice','passThree','initialPairDiscard','skipInitialPairs','continueRound']);
+  if(!mutationTypes.has(type)) return '';
+  const stable={type};
+  for(const key of ['cardId','index','skip','cardAId','cardBId']) if(msg[key] !== undefined) stable[key]=msg[key];
+  if(Array.isArray(msg.cardIds)) stable.cardIds=msg.cardIds.map(String);
+  return JSON.stringify(stable);
+}
+function isDuplicateClientAction(ws,msg,now=Date.now()){
+  const signature=clientActionSignature(msg);
+  if(!signature) return false;
+  const duplicate=ws.lastActionSignature===signature && now-Number(ws.lastActionAt||0)<DUPLICATE_ACTION_WINDOW_MS;
+  ws.lastActionSignature=signature;
+  ws.lastActionAt=now;
+  return duplicate;
+}
+
 wss.on('connection', (ws) => {
   ws.isAlive = true;
   ws.missedHeartbeats = 0;
@@ -3815,7 +3842,13 @@ wss.on('connection', (ws) => {
   ws.on('message', (raw) => {
     ws.isAlive = true;
     ws.missedHeartbeats = 0;
-    let msg; try { msg=JSON.parse(raw); } catch(e){ return; }
+    if(clientMessageByteLength(raw) > MAX_WS_MESSAGE_BYTES){
+      try{ ws.close(1009,'message too large'); }catch(e){}
+      return;
+    }
+    let msg; try { msg=JSON.parse(raw); } catch(e){ return send(ws,'errorMsg',{message:'受信データを読み取れませんでした。'}); }
+    if(!msg || typeof msg !== 'object' || Array.isArray(msg)) return;
+    if(isDuplicateClientAction(ws,msg)) return;
     try{
       if(msg.type==='ping') return send(ws,'pong',{at:Date.now(), echo:msg.at || null});
       if((msg.type==='create' || msg.type==='join' || msg.type==='reconnect') && roomByWs(ws)){

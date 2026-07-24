@@ -6920,6 +6920,112 @@ body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .commentary-a
 body.spotlight-active .commentary-layer{opacity:0!important;visibility:hidden!important;transition:opacity .12s ease-out}
 .commentary-layer{transition:opacity .12s ease-out}
 
+
+
+/* =========================================================
+   v29 iOS final-result scroll safety
+   - Keep gameplay document locked, but make the score screen the sole scroll owner.
+   - Avoid the body/100dvh nested-scroll conflict seen in iPhone Safari/PWA.
+   ========================================================= */
+body.finished-mode{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+}
+body.finished-mode #app{
+  height:100dvh!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.finished-mode .game-screen{
+  display:block!important;
+  position:relative!important;
+  width:100%!important;
+  height:100dvh!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body.finished-mode .game-hud{
+  position:fixed!important;
+  inset:0 0 auto 0!important;
+  z-index:90!important;
+}
+body.finished-mode .score-screen{
+  position:fixed!important;
+  inset:56px 0 0!important;
+  height:auto!important;
+  min-height:0!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+  padding:18px 18px calc(110px + env(safe-area-inset-bottom))!important;
+  scroll-padding-bottom:calc(110px + env(safe-area-inset-bottom));
+}
+body.finished-mode .score-screen,
+body.finished-mode .score-screen *{
+  max-width:100%;
+}
+body.finished-mode .final-stage{
+  overflow:visible!important;
+  min-width:0!important;
+}
+body.finished-mode .final-actions{
+  position:sticky;
+  bottom:max(8px,env(safe-area-inset-bottom));
+  z-index:12;
+  margin:18px -4px 0;
+  padding:10px;
+  border:1px solid rgba(72,33,52,.13);
+  border-radius:18px;
+  background:rgba(255,250,242,.96);
+  box-shadow:0 12px 30px rgba(20,12,18,.22);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+}
+body.finished-mode .final-actions .btn{
+  min-height:44px;
+}
+
+/* Other tall overlays use one explicit touch-scroll owner as well. */
+.round-panel,
+.utility-sheet,
+.rule-help-panel{
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y;
+}
+.round-panel{
+  max-height:calc(100dvh - 28px)!important;
+  padding-bottom:calc(18px + env(safe-area-inset-bottom))!important;
+}
+.utility-sheet{
+  height:100dvh!important;
+  padding-bottom:calc(24px + env(safe-area-inset-bottom))!important;
+}
+@media(max-width:720px){
+  body.finished-mode .game-hud{height:44px!important}
+  body.finished-mode .score-screen{
+    inset:44px 0 0!important;
+    padding:12px 8px calc(104px + env(safe-area-inset-bottom))!important;
+  }
+  body.finished-mode .final-stage{
+    padding:10px!important;
+    border-radius:20px!important;
+  }
+  body.finished-mode .final-actions{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+  }
+  body.finished-mode .final-actions .btn{
+    width:100%!important;
+    min-height:46px!important;
+  }
+}
+
 </style>
 </head>
 <body class="modern-game-ui">
@@ -7145,7 +7251,7 @@ body.spotlight-active .commentary-layer{opacity:0!important;visibility:hidden!im
       </div>
     </aside>
 
-    <section id="scoreBox" class="score-screen" style="display:none"><h2>最終結果</h2><div id="score"></div></section>
+    <section id="scoreBox" class="score-screen" style="display:none" aria-labelledby="finalResultTitle"><h2 id="finalResultTitle" tabindex="-1">最終結果</h2><div id="score"></div></section>
   </main>
 </div>
 <div id="roundModal"></div>
@@ -7167,10 +7273,13 @@ let __lastPlayersRenderKey='';
 let __lastRoundStatusKey='';
 let __lastRoundModalKey='';
 let __lastScoreRenderKey='';
+let __finalResultViewToken='';
+let __continueRoundRequestTimer=0;
 let __lastShootPigEventId='';
 let __lastBabaDrawEventId='';
 let __lastMomentEventId='';
 let __lastSpotlightEventId='';
+let __lastUiPhase='';
 let __scheduledSpotlightEventId='';
 let __lastLogRenderKey='';
 let __lastLastTrickKey='';
@@ -8687,6 +8796,20 @@ function render(){
   if(lobby) lobby.setAttribute('aria-hidden', inGame ? 'true' : 'false');
   document.body.classList.toggle('gameplay-mode', inGame);
   document.body.classList.toggle('finished-mode', state.phase === 'finished');
+  if(__lastUiPhase !== state.phase){
+    const previousPhase=__lastUiPhase;
+    __lastUiPhase=state.phase;
+    if(state.phase==='finished'){
+      window.requestAnimationFrame(()=>{
+        const scoreScreen=$('scoreBox');
+        if(scoreScreen){ scoreScreen.scrollTop=0; }
+        window.scrollTo(0,0);
+      });
+    }else if(previousPhase==='finished'){
+      const scoreScreen=$('scoreBox');
+      if(scoreScreen){ scoreScreen.scrollTop=0; }
+    }
+  }
   const isSetupPhase = state.phase === 'passing' || state.phase === 'initialPair';
   gameScreen?.classList.toggle('is-review-mode', !!state.trickReview);
   gameScreen?.classList.toggle('is-setup-mode', isSetupPhase);
@@ -9229,6 +9352,8 @@ function renderRoundModal(){
 
   // ラウンド終了時に表示。OKで次ラウンドへ。
   if(state.phase !== 'roundEnd' || !sum){
+    window.clearTimeout(__continueRoundRequestTimer);
+    __continueRoundRequestTimer=0;
     if(__lastRoundModalKey !== 'empty'){
       el.innerHTML='';
       __lastRoundModalKey = 'empty';
@@ -9850,11 +9975,23 @@ document.addEventListener('click', ev=>{
   if(!btn || btn.disabled) return;
   ev.preventDefault();
   btn.disabled=true;
+  btn.setAttribute('aria-busy','true');
   btn.textContent='次ラウンド準備中…';
+  window.clearTimeout(__continueRoundRequestTimer);
   if(!continueRound()){
     btn.disabled=false;
+    btn.removeAttribute('aria-busy');
     btn.textContent='OK：次のラウンドへ進む';
+    return;
   }
+  __continueRoundRequestTimer=window.setTimeout(()=>{
+    if(state?.phase==='roundEnd' && btn.isConnected){
+      btn.disabled=false;
+      btn.removeAttribute('aria-busy');
+      btn.textContent='OK：次のラウンドへ進む';
+      hypeToast('次ラウンドへの移行を再確認してください。','danger');
+    }
+  },6000);
 });
 
 function renderPick(){
@@ -9876,10 +10013,20 @@ function renderLog(){
   $('log').innerHTML=rows.map(x=>`<p><b>${x.time}</b> ${esc(x.text)}</p>`).join('');
 }
 
+function scrollResultToTop({focus=false,behavior='auto'}={}){
+  const box=$('scoreBox');
+  if(!box) return;
+  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const mode=reduced ? 'auto' : behavior;
+  try{ box.scrollTo({top:0,left:0,behavior:mode}); }catch(e){ box.scrollTop=0; }
+  if(focus) requestAnimationFrame(()=>$('finalResultTitle')?.focus({preventScroll:true}));
+}
+
 function renderScore(){
   if(state.phase!=='finished'){
     $('scoreBox').style.display='none';
     __lastScoreRenderKey='empty';
+    __finalResultViewToken='';
     return;
   }
   $('scoreBox').style.display='block';
@@ -9979,12 +10126,17 @@ function renderScore(){
   if(key === __lastScoreRenderKey) return;
   __lastScoreRenderKey = key;
   $('score').innerHTML = scoreHtml;
+  const viewToken=`${state.code || ''}:${state.round || ''}:${state.finalRoundSummary?.createdAt || ''}:${sorted.map(p=>p.final?.total).join(',')}`;
+  if(__finalResultViewToken !== viewToken){
+    __finalResultViewToken=viewToken;
+    requestAnimationFrame(()=>scrollResultToTop({focus:true,behavior:'auto'}));
+  }
 }
 
 document.addEventListener('click', ev=>{
   if(ev.target?.closest?.('[data-scroll-top]')){
     ev.preventDefault();
-    window.scrollTo({top:0,behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth'});
+    scrollResultToTop({focus:true,behavior:'auto'});
   }
   const rematchBtn=ev.target?.closest?.('[data-rematch]');
   if(rematchBtn){
