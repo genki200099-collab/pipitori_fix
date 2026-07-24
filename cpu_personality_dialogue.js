@@ -958,12 +958,30 @@ function choose(arr, recent=[]){
   return pool[Math.floor(Math.random()*pool.length)];
 }
 
+function safeTemplateValue(value, key=''){
+  if(value == null) return '';
+  if(typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if(Array.isArray(value)) return value.map(item=>safeTemplateValue(item,key)).filter(Boolean).join('、');
+  if(typeof value === 'object'){
+    if(value.name != null) return String(value.name);
+    if(value.text != null) return String(value.text);
+    if(value.label != null) return String(value.label);
+    if(value.joker) return '🃏ババブタ';
+    if(value.rank != null){
+      const suitIcons={apple:'🍎',corn:'🌽',cabbage:'🥬',mud:'💧'};
+      return `${value.rank}${suitIcons[value.suit] ? ` ${suitIcons[value.suit]}` : ''}`;
+    }
+    return ['card','drawn'].includes(key) ? 'この札' : '';
+  }
+  return String(value);
+}
+
 function render(template, ctx){
   const safe = Object.assign({
     target:'相手',winner:'勝者',weakest:'最弱',speaker:'CPU',card:'この札',drawn:'この札',
     round:1,remaining:'数',penalty:20,mode:'現在の失点方式'
   }, ctx || {});
-  return String(template || '').replace(/\{(\w+)\}/g, (_,key)=>String(safe[key] ?? ''));
+  return String(template || '').replace(/\{(\w+)\}/g, (_,key)=>safeTemplateValue(safe[key],key));
 }
 
 function cleanLine(text){

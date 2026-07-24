@@ -88,10 +88,10 @@ const baseRoom = (players, extra={})=>({
   assert.strictEqual(hiddenPair.rank,'11');
   assert.strictEqual(hiddenPair.containsMadPig,false);
 
-  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:joker()}),5000);
-  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:card('apple',4),paired:true}),3400);
-  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:mad}),4200);
-  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:card('cabbage',4)}),2600);
+  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:joker()}),5700);
+  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:card('apple',4),paired:true}),4600);
+  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:mad}),5100);
+  assert.strictEqual(api.pickResultDisplayMs(room,{drawn:card('cabbage',4)}),2800);
   const publicView=api.publicState(room,'A');
   assert.strictEqual(publicView.madPigEvent.id,madEvent.id);
   assert.strictEqual(publicView.pairCleanEvent.cards,null);

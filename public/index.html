@@ -6915,6 +6915,11 @@ body.gameplay-mode.modern-game-ui:not(.ui-phone) .commentary-layer .commentary-a
   .spotlight-overlay .spotlight-scanlines{display:none}.spotlight-overlay .spotlight-cursor{animation:none!important;opacity:1}
 }
 
+
+/* v27: 中央カットイン中は小さい実況レーンを一時退避し、情報の二重表示を防ぐ。 */
+body.spotlight-active .commentary-layer{opacity:0!important;visibility:hidden!important;transition:opacity .12s ease-out}
+.commentary-layer{transition:opacity .12s ease-out}
+
 </style>
 </head>
 <body class="modern-game-ui">
@@ -7156,6 +7161,8 @@ let handExpanded=false;
 let pendingConnectIntent='idle';
 let __lastPickReady=false;
 let __lastCommentaryRenderKey='';
+let __commentaryExpiryTimer=0;
+let __lastActiveRuleSummaryKey='';
 let __lastPlayersRenderKey='';
 let __lastRoundStatusKey='';
 let __lastRoundModalKey='';
@@ -8608,6 +8615,9 @@ function renderSelectedRuleSummary(){
   if(!target || !state) return;
   const rounds=Number(state.totalRounds || 3);
   const pickCount=Number(state.pickTargetCount || 0);
+  const summaryKey=[rounds,state.roundDealMode,state.penaltyMode,state.jokerPenalty,state.jokerPenaltyTiming,state.madPigEnabled,state.shootThePigEnabled,pickCount,state.passThreeEnabled,state.initialPairDiscardEnabled].join('|');
+  if(summaryKey===__lastActiveRuleSummaryKey) return;
+  __lastActiveRuleSummaryKey=summaryKey;
   const jokerTiming=state.jokerPenaltyTiming==='gameEnd' ? 'ゲーム終了時に一度' : '各ラウンド';
   const madOn=state.madPigEnabled !== false;
   const madText=!madOn
@@ -8764,6 +8774,41 @@ function pairEventCardHTML(ev, index){
   return `<div class="pair-symbol-card" aria-label="数字${rank}のペア"><b>${rank}</b><span>🐷</span></div>`;
 }
 
+function clearTimedOverlay(root,{holdTimer,clearTimer,bodyClasses=[]}={}){
+  if(holdTimer) window.clearTimeout(window[holdTimer]);
+  if(clearTimer) window.clearTimeout(window[clearTimer]);
+  for(const className of bodyClasses) document.body.classList.remove(className);
+  if(!root) return;
+  root.innerHTML='';
+  root.dataset.active='0';
+  root.dataset.eventId='';
+  root.classList.remove('fade-out');
+}
+
+function timedOverlayHoldMs(defaultHoldMs,fadeMs){
+  const startsAt=Number(state?.spotlightEvent?.startsAt || 0);
+  if(!startsAt) return defaultHoldMs;
+  const untilSpotlight=startsAt-Date.now()-Math.max(0,Number(fadeMs)||0)-40;
+  return Math.max(120,Math.min(defaultHoldMs,untilSpotlight));
+}
+
+function scheduleTimedOverlayExit(root,{eventId,holdMs,fadeMs,holdTimer,clearTimer,bodyClasses=[]}){
+  if(!root) return;
+  if(holdTimer) window.clearTimeout(window[holdTimer]);
+  if(clearTimer) window.clearTimeout(window[clearTimer]);
+  const safeEventId=String(eventId || '');
+  root.dataset.eventId=safeEventId;
+  window[holdTimer]=window.setTimeout(()=>{
+    if(root.dataset.active!=='1' || root.dataset.eventId!==safeEventId) return;
+    root.classList.add('fade-out');
+    for(const className of bodyClasses) document.body.classList.remove(className);
+    window[clearTimer]=window.setTimeout(()=>{
+      if(root.dataset.eventId!==safeEventId) return;
+      clearTimedOverlay(root,{holdTimer,clearTimer,bodyClasses});
+    },Math.max(0,Number(fadeMs)||0));
+  },Math.max(0,Number(holdMs)||0));
+}
+
 function renderMomentOverlay(){
   const root=$('momentOverlay');
   if(!root || !state) return;
@@ -8771,12 +8816,8 @@ function renderMomentOverlay(){
   const madEv=pairEv ? null : state.madPigEvent;
   const ev=pairEv || madEv;
   if(!ev){
-    // イベント状態が次へ進んでも、開始済みの短い演出は自身のタイマーで最後まで見せる。
-    // ロビーへ戻った場合だけ即時に片付ける。
-    if(state.phase==='lobby' && root.dataset.active==='1'){
-      clearTimeout(window.__momentOverlayTimer);
-      root.innerHTML='';root.dataset.active='0';root.classList.remove('fade-out');
-      document.body.classList.remove('pair-impact-active','mad-impact-active');
+    if(!['playing','initialPair','passing'].includes(state.phase) && root.dataset.active==='1'){
+      clearTimedOverlay(root,{holdTimer:'__momentOverlayTimer',clearTimer:'__momentOverlayClearTimer',bodyClasses:['pair-impact-active','mad-impact-active']});
     }
     return;
   }
@@ -8784,11 +8825,10 @@ function renderMomentOverlay(){
   const key=String(ev.id || `${type}:${state.code}:${state.round}:${ev.playerPid ?? ev.ownerPid}:${ev.rank || ev.card?.id || ''}:${ev.source || ''}`);
   if(__lastMomentEventId===key) return;
   __lastMomentEventId=key;
-  clearTimeout(window.__momentOverlayTimer);
-  clearTimeout(window.__momentOverlayClearTimer);
+  clearTimedOverlay(root,{holdTimer:'__momentOverlayTimer',clearTimer:'__momentOverlayClearTimer',bodyClasses:['pair-impact-active','mad-impact-active']});
   root.className='moment-overlay';
   root.dataset.active='1';
-  document.body.classList.remove('pair-impact-active','mad-impact-active');
+  root.dataset.eventId=key;
 
   if(type==='pair'){
     document.body.classList.add('pair-impact-active');
@@ -8830,15 +8870,9 @@ function renderMomentOverlay(){
     effectVibrate([24,42,24,55,38]);
   }
 
-  const holdMs=type==='pair' ? 1600 : 2050;
-  window.__momentOverlayTimer=window.setTimeout(()=>{
-    if(root.dataset.active!=='1') return;
-    root.classList.add('fade-out');
-    document.body.classList.remove('pair-impact-active','mad-impact-active');
-    window.__momentOverlayClearTimer=window.setTimeout(()=>{
-      root.innerHTML='';root.dataset.active='0';root.classList.remove('fade-out');
-    },360);
-  },holdMs);
+  const fadeMs=360;
+  const holdMs=timedOverlayHoldMs(type==='pair' ? 1600 : 2050,fadeMs);
+  scheduleTimedOverlayExit(root,{eventId:key,holdMs,fadeMs,holdTimer:'__momentOverlayTimer',clearTimer:'__momentOverlayClearTimer',bodyClasses:['pair-impact-active','mad-impact-active']});
 }
 
 function renderBabaDrawOverlay(){
@@ -8848,9 +8882,7 @@ function renderBabaDrawOverlay(){
   const drawn = pp?.result?.drawn;
   if(!pp || !pp.result || !drawn || !drawn.joker){
     if(root.dataset.active === '1'){
-      root.innerHTML='';
-      root.dataset.active='0';
-      document.body.classList.remove('baba-impact-active');
+      clearTimedOverlay(root,{holdTimer:'__babaDrawOverlayTimer',clearTimer:'__babaDrawOverlayClearTimer',bodyClasses:['baba-impact-active']});
     }
     return;
   }
@@ -8859,7 +8891,9 @@ function renderBabaDrawOverlay(){
   const key = String(pp.result.eventId || `${state.code}:${state.round}:${pp.winnerPid}:${pp.weakestPid}:${drawn.id || ''}:${pp.result.text || ''}`);
   if(__lastBabaDrawEventId === key) return;
   __lastBabaDrawEventId = key;
+  clearTimedOverlay(root,{holdTimer:'__babaDrawOverlayTimer',clearTimer:'__babaDrawOverlayClearTimer',bodyClasses:['baba-impact-active']});
   root.dataset.active='1';
+  root.dataset.eventId=key;
   document.body.classList.add('baba-impact-active');
   const penalty = state.jokerPenalty ?? 20;
   root.innerHTML = `
@@ -8889,18 +8923,9 @@ function renderBabaDrawOverlay(){
     </div>
   `;
   effectVibrate([35,55,90]);
-  window.clearTimeout(window.__babaDrawOverlayTimer);
-  window.__babaDrawOverlayTimer = window.setTimeout(()=>{
-    if(root.dataset.active === '1'){
-      root.classList.add('fade-out');
-      document.body.classList.remove('baba-impact-active');
-      window.setTimeout(()=>{
-        root.innerHTML='';
-        root.dataset.active='0';
-        root.classList.remove('fade-out');
-      }, 450);
-    }
-  }, 2600);
+  const fadeMs=450;
+  const holdMs=timedOverlayHoldMs(2600,fadeMs);
+  scheduleTimedOverlayExit(root,{eventId:key,holdMs,fadeMs,holdTimer:'__babaDrawOverlayTimer',clearTimer:'__babaDrawOverlayClearTimer',bodyClasses:['baba-impact-active']});
 }
 
 function stopSpotlightTyping(){
@@ -8921,6 +8946,7 @@ function clearSpotlightOverlay(root, {cancelStart=true}={}){
   root.dataset.active='0';
   root.dataset.eventId='';
   root.className='spotlight-overlay';
+  document.body.classList.remove('spotlight-active');
 }
 
 function typeSpotlightText(root, fullText, duration){
@@ -8930,7 +8956,7 @@ function typeSpotlightText(root, fullText, duration){
   const chars=Array.from(String(fullText || ''));
   const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   if(reduce || chars.length<2){ target.textContent=chars.join(''); return; }
-  const available=Math.max(500,Number(duration || 2600)-500);
+  const available=Math.max(500,Number(duration || 2200)-500);
   const speed=Math.max(8,Math.min(25,Math.floor(available/Math.max(1,chars.length))));
   const step=chars.length>58 ? 2 : 1;
   let index=0;
@@ -8985,7 +9011,7 @@ function renderSpotlightOverlay(){
   const bubbleStyle=safeCssToken(ev.bubbleStyle || 'normal','normal');
   const animation=safeCssToken(ev.animation || 'slide-up','slide-up');
   const emotion=safeCssToken(ev.emotion || 'normal','normal');
-  const duration=Math.max(280,Math.min(Number(ev.durationMs || 2600),Number(ev.expiresAt || 0)-Date.now()));
+  const duration=Math.max(280,Math.min(Number(ev.durationMs || 2200),Number(ev.expiresAt || 0)-Date.now()));
   const speaker=String(ev.speakerName || 'CPU');
   const fullText=String(ev.text || '');
   const portrait=ev.portraitPath
@@ -8995,6 +9021,7 @@ function renderSpotlightOverlay(){
   root.dataset.active='1';
   root.dataset.eventId=key;
   root.className=`spotlight-overlay speaker-${cpuKey} emotion-${emotion} anim-${animation}`;
+  document.body.classList.add('spotlight-active');
   root.innerHTML=`
     <div class="spotlight-visually-hidden">${esc(`${speaker}。${fullText}`)}</div>
     <div class="spotlight-scrim" aria-hidden="true"></div>
@@ -9039,15 +9066,16 @@ function renderShootPigOverlay(){
   const ev = state.shootPigEvent;
   if(!ev){
     if(root.dataset.active === '1'){
-      root.innerHTML='';
-      root.dataset.active='0';
-      document.body.classList.remove('shoot-impact-active');
+      clearTimedOverlay(root,{holdTimer:'__shootPigOverlayTimer',clearTimer:'__shootPigOverlayClearTimer',bodyClasses:['shoot-impact-active']});
     }
     return;
   }
   if(__lastShootPigEventId === ev.id) return;
   __lastShootPigEventId = ev.id;
+  const key=String(ev.id || `${state.code}:${state.round}:${ev.shooterPid ?? ''}`);
+  clearTimedOverlay(root,{holdTimer:'__shootPigOverlayTimer',clearTimer:'__shootPigOverlayClearTimer',bodyClasses:['shoot-impact-active']});
   root.dataset.active='1';
+  root.dataset.eventId=key;
   document.body.classList.add('shoot-impact-active');
   root.innerHTML = `
     <div class="shoot-impact-bg" aria-hidden="true"></div>
@@ -9076,18 +9104,7 @@ function renderShootPigOverlay(){
     </div>
   `;
   effectVibrate([28,42,28,42,96]);
-  window.clearTimeout(window.__shootPigOverlayTimer);
-  window.__shootPigOverlayTimer = window.setTimeout(()=>{
-    if(root.dataset.active === '1'){
-      root.classList.add('fade-out');
-      document.body.classList.remove('shoot-impact-active');
-      window.setTimeout(()=>{
-        root.innerHTML='';
-        root.dataset.active='0';
-        root.classList.remove('fade-out');
-      }, 760);
-    }
-  }, 7200);
+  scheduleTimedOverlayExit(root,{eventId:key,holdMs:7200,fadeMs:760,holdTimer:'__shootPigOverlayTimer',clearTimer:'__shootPigOverlayClearTimer',bodyClasses:['shoot-impact-active']});
 }
 
 
@@ -9268,10 +9285,17 @@ function renderRoundModal(){
 
 function renderCommentary(){
   const el=$('tableCommentary');
-  if(!el) return;
-  const list=(state.commentary||[]).slice(0,2);
+  if(!el || !state) return;
+  window.clearTimeout(__commentaryExpiryTimer);
+  __commentaryExpiryTimer=0;
+  const now=Date.now();
+  const list=(state.commentary||[]).filter(c=>!c.expiresAt || Number(c.expiresAt)>now).slice(0,2);
   const key = list.map(c=>`${c.pid}:${c.text}:${c.compactText||''}:${c.mood||''}:${c.intensity||''}:${c.eventKey||''}:${c.expiresAt||''}`).join('|');
-  if(key === __lastCommentaryRenderKey) return;
+  if(key === __lastCommentaryRenderKey){
+    const nextExpiry=list.map(c=>Number(c.expiresAt||0)).filter(t=>t>now).sort((a,b)=>a-b)[0];
+    if(nextExpiry) __commentaryExpiryTimer=window.setTimeout(()=>{__lastCommentaryRenderKey='__force_expiry__';renderCommentary();},Math.max(30,nextExpiry-Date.now()+20));
+    return;
+  }
   __lastCommentaryRenderKey = key;
   if(!list.length){ el.className='commentary-layer'; el.innerHTML=''; return; }
   const latest = list[0];
@@ -9280,25 +9304,13 @@ function renderCommentary(){
   const latestPosition = relativeSeatPosition(latest.pid);
   el.className = `commentary-layer mood-${latestMood} intensity-${latestIntensity} from-${latestPosition}`;
   const avatar = (c)=> c.avatarImage
-    ? `<img src="${escAttr(c.avatarImage)}" alt="${escAttr(c.name)}" class="commentary-avatar">`
+    ? `<img src="${escAttr(c.avatarImage)}" alt="${escAttr(c.name)}" data-comment-avatar-fallback="${escAttr(c.avatar || face(c.pid))}" class="commentary-avatar">`
     : `<span class="commentary-avatar emoji">${esc(c.avatar || face(c.pid))}</span>`;
-  el.innerHTML = `<div class="table-commentary speech-mode">
-    <div class="table-commentary-title">🎙️ 卓上実況</div>
-    <div class="table-commentary-list">
-      ${list.map((c,idx)=>{
-        const mood=safeCssToken(c.mood,'calm');
-        const intensity=safeCssToken(c.intensity,'medium');
-        const eventKey=safeCssToken(c.eventKey,'default');
-        const position=relativeSeatPosition(c.pid);
-        return `<div class="speech-bubble ${safeCssToken(c.cpuKey,'cpu')} mood-${mood} intensity-${intensity} event-${eventKey} from-${position} ${idx===0?'latest':''}">
-        <span class="speech-cue" aria-hidden="true">${esc(c.icon || '💬')}</span>
-        <div class="speech-face">${avatar(c)}</div>
-        <div class="speech-body"><div class="speech-meta"><b title="${escAttr(c.name)}">${esc(c.name)}</b><span class="speech-tag">${esc(c.label || 'COMMENT')}</span></div><p title="${escAttr(c.text)}" aria-label="${escAttr(c.text)}"><span class="commentary-full-text">${esc(c.text)}</span><span class="commentary-compact-text">${esc(c.compactText || c.text)}</span></p></div>
-      </div>`;}).join('')}
-    </div>
-  </div>`;
+  el.innerHTML = `<div class="table-commentary speech-mode"><div class="table-commentary-title">🎙️ 卓上実況</div><div class="table-commentary-list">${list.map((c,idx)=>{const mood=safeCssToken(c.mood,'calm');const intensity=safeCssToken(c.intensity,'medium');const eventKey=safeCssToken(c.eventKey,'default');const position=relativeSeatPosition(c.pid);return `<div class="speech-bubble ${safeCssToken(c.cpuKey,'cpu')} mood-${mood} intensity-${intensity} event-${eventKey} from-${position} ${idx===0?'latest':''}"><span class="speech-cue" aria-hidden="true">${esc(c.icon || '💬')}</span><div class="speech-face">${avatar(c)}</div><div class="speech-body"><div class="speech-meta"><b title="${escAttr(c.name)}">${esc(c.name)}</b><span class="speech-tag">${esc(c.label || 'COMMENT')}</span></div><p title="${escAttr(c.text)}" aria-label="${escAttr(c.text)}"><span class="commentary-full-text">${esc(c.text)}</span><span class="commentary-compact-text">${esc(c.compactText || c.text)}</span></p></div></div>`;}).join('')}</div></div>`;
+  el.querySelectorAll('img[data-comment-avatar-fallback]').forEach(img=>{img.addEventListener('error',()=>{const fallback=document.createElement('span');fallback.className='commentary-avatar emoji';fallback.textContent=img.dataset.commentAvatarFallback || '🐷';img.replaceWith(fallback);},{once:true});});
+  const nextExpiry=list.map(c=>Number(c.expiresAt||0)).filter(t=>t>now).sort((a,b)=>a-b)[0];
+  if(nextExpiry) __commentaryExpiryTimer=window.setTimeout(()=>{__lastCommentaryRenderKey='__force_expiry__';renderCommentary();},Math.max(30,nextExpiry-Date.now()+20));
 }
-
 
 
 

@@ -66,4 +66,22 @@ try{
 }
 assert(namedCount >= 80, 'dynamic player names should appear often enough to personalize commentary');
 
+
+// Object-valued context must never leak JavaScript's default stringification
+// into user-visible dialogue. This reproduces the reported [object Object] bug.
+const objectCtx = {
+  target:{name:'ピピ'}, winner:{name:'ワクもどき'}, weakest:{name:'リクもどき'},
+  speaker:{name:'CPU'}, card:{suit:'mud',rank:'12',val:12,joker:false},
+  drawn:{joker:true,rank:'JOKER'}, round:2, remaining:3, penalty:20,
+  mode:{label:'通常カード-3／💧-6'}
+};
+for(const key of characters){
+  for(const event of COMMON_EVENTS){
+    for(let i=0;i<30;i++){
+      const line=createPersonaLine(key,event,objectCtx,[]);
+      assert(!line.includes('[object Object]'),`${key}/${event} leaked object stringification: ${line}`);
+    }
+  }
+}
+
 console.log('cpu personality dialogue regression: all assertions passed');

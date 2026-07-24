@@ -58,6 +58,7 @@ const WS_HEARTBEAT_MAX_MISSES = Math.max(2, Math.min(6, Number(process.env.WS_HE
 const DISCONNECTED_ACTION_GRACE_MS = positiveDuration(process.env.DISCONNECTED_ACTION_GRACE_MS, 45 * 1000);
 const ROUND_END_AUTO_CONTINUE_MS = positiveDuration(process.env.ROUND_END_AUTO_CONTINUE_MS, 45 * 1000);
 const ROOM_EMPTY_TTL_MS = positiveDuration(process.env.ROOM_EMPTY_TTL_MS, 10 * 60 * 1000);
+const SPOTLIGHT_DISPLAY_MS = 2200;
 
 
 // 同じ目的の短時間タスクをキーで一元管理し、再送や監視処理からの重複予約を防ぐ。
@@ -201,28 +202,26 @@ function registerPairCleanEvent(room, playerPid, cards, source='pick', revealCar
 }
 
 function pickResultDisplayMs(room, result){
-  if(result?.drawn?.joker) return 5000;
-  if(result?.paired) return 3400;
-  if(room?.madPigEnabled !== false && isMadPig(result?.drawn)) return 4200;
-  return 2600;
+  // 専用演出の後に中央セリフを必ず2.2秒表示し、退場アニメーションまで
+  // 次のトリック開始前に完了させるため、結果確認区間も経路別に確保する。
+  if(result?.drawn?.joker) return 5700;
+  if(result?.paired) return 4600;
+  if(room?.madPigEnabled !== false && isMadPig(result?.drawn)) return 5100;
+  return 2800;
 }
 
 
-function spotlightDurationMs(plan){
-  if(!plan) return 2600;
-  const key = String(plan.eventType || '').toLowerCase();
-  if(key.includes('joker') || key.includes('baba')) return 3200;
-  if(key.includes('pair')) return 3000;
-  if(key.includes('madpig') || key.includes('shoot')) return 3200;
-  return 2600;
+function spotlightDurationMs(){
+  return SPOTLIGHT_DISPLAY_MS;
 }
 
 function spotlightTimingAfterPick(room, drawn, paired=false){
-  // 専用演出が十分見えた後に中央セリフを開始し、退場まで次トリック前に完了させる。
-  if(drawn?.joker) return {delayMs:3100,durationMs:1350};
-  if(paired) return {delayMs:1950,durationMs:1100};
-  if(room?.madPigEnabled !== false && isMadPig(drawn)) return {delayMs:2450,durationMs:1300};
-  return {delayMs:100,durationMs:2100};
+  // どの経路でも画像付き中央セリフの実表示時間は2.2秒で統一する。
+  // 専用演出の開始待ちだけを場面ごとに変え、セリフの可読時間は変えない。
+  if(drawn?.joker) return {delayMs:3100,durationMs:SPOTLIGHT_DISPLAY_MS};
+  if(paired) return {delayMs:1950,durationMs:SPOTLIGHT_DISPLAY_MS};
+  if(room?.madPigEnabled !== false && isMadPig(drawn)) return {delayMs:2450,durationMs:SPOTLIGHT_DISPLAY_MS};
+  return {delayMs:100,durationMs:SPOTLIGHT_DISPLAY_MS};
 }
 
 function registerSpotlightEvent(room, payload){
@@ -912,6 +911,22 @@ function cpuCommentChance(room, base=.36){
 }
 
 
+function personaContextText(value, fallback='', {cardLike=false}={}){
+  if(value == null || value === '') return fallback;
+  if(typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if(cardLike && typeof value === 'object'){
+    try{
+      if(value.joker || value.rank != null || value.suit != null) return cardText(value);
+    } catch(_e){}
+  }
+  if(typeof value === 'object'){
+    if(value.name != null) return String(value.name);
+    if(value.text != null) return String(value.text);
+    if(value.label != null) return String(value.label);
+  }
+  return fallback;
+}
+
 function cpuPersonaLineFor(room, pid, type, ctx={}){
   const p = room?.players?.[pid];
   const ch = cpuCharacter(p);
@@ -920,18 +935,23 @@ function cpuPersonaLineFor(room, pid, type, ctx={}){
     .filter(item=>item && item.cpuKey===ch.key && item.text)
     .slice(0,6)
     .map(item=>item.text);
-  const fullCtx = Object.assign({
-    speaker:p.name,
-    target:ctx.target || cpuNextName(room, pid),
-    winner:ctx.winner || '勝者',
-    weakest:ctx.weakest || '最弱',
-    card:ctx.card ? cardText(ctx.card) : 'この札',
-    drawn:ctx.drawn ? cardText(ctx.drawn) : 'この札',
-    round:room.round || 1,
-    remaining:Array.isArray(p.hand) ? p.hand.length : '数',
-    penalty:room.jokerPenalty ?? 20,
-    mode:roomPenaltyLabel(room)
-  }, ctx || {});
+
+  // 既定値を作った後にctxを上書きすると、card/drawnへカードオブジェクトが
+  // そのまま戻り、テンプレート展開時に「[object Object]」になる。
+  // すべてのテンプレート変数を最終段で表示用文字列へ正規化する。
+  const rawCtx = Object.assign({}, ctx || {});
+  const fullCtx = {
+    speaker:personaContextText(rawCtx.speaker, p.name),
+    target:personaContextText(rawCtx.target, cpuNextName(room, pid)),
+    winner:personaContextText(rawCtx.winner, '勝者'),
+    weakest:personaContextText(rawCtx.weakest, '最弱'),
+    card:personaContextText(rawCtx.card, 'この札', {cardLike:true}),
+    drawn:personaContextText(rawCtx.drawn, 'この札', {cardLike:true}),
+    round:personaContextText(rawCtx.round, room.round || 1),
+    remaining:personaContextText(rawCtx.remaining, Array.isArray(p.hand) ? p.hand.length : '数'),
+    penalty:personaContextText(rawCtx.penalty, room.jokerPenalty ?? 20),
+    mode:personaContextText(rawCtx.mode, roomPenaltyLabel(room))
+  };
   return createPersonaLine(ch.key, type, fullCtx, recent);
 }
 
@@ -1795,20 +1815,22 @@ function isOpenWs(ws){
   return ws && ws.readyState === WebSocket.OPEN;
 }
 
-// ロビーで部屋主が離脱したままだと、残った参加者がCPU追加や開始を行えず停止する。
-// 接続中の人間へ部屋主を引き継ぎ、開始前の部屋を操作不能にしない。
+// ロビーまたは最終結果で部屋主が離脱したままだと、残った参加者が
+// ゲーム開始・再戦を行えず停止する。操作可能な人間へ安全に権限を移す。
 function ensureLobbyHost(room){
-  if(!room || room.phase !== 'lobby' || !Array.isArray(room.players)) return false;
+  if(!room || !['lobby','finished'].includes(room.phase) || !Array.isArray(room.players)) return false;
   const currentHost = room.players.find(p=>p.id === room.hostId);
   if(currentHost && !currentHost.cpu && isOpenWs(currentHost.ws)) return false;
 
-  // 切断中の人へ部屋主権限を渡すと、接続中の参加者が開始できないままになる。
-  // 必ず現在操作できる人間だけを移譲先にする。誰も接続していない間は現状を保持し、
+  // 切断中の人やCPUへ権限を渡さない。誰も接続していない間は現状を保持し、
   // 次の復帰時に reconnectRoom() から再評価する。
   const nextHost = room.players.find(p=>!p.cpu && isOpenWs(p.ws));
   if(!nextHost || nextHost.id === room.hostId) return false;
   room.hostId = nextHost.id;
-  room.message = `${nextHost.name} が新しい部屋主になりました。CPUの追加・削除とゲーム開始ができます。`;
+  const action = room.phase === 'finished'
+    ? '同じメンバー・同じルールで再戦できます。'
+    : 'CPUの追加・削除とゲーム開始ができます。';
+  room.message = `${nextHost.name} が新しい部屋主になりました。${action}`;
   log(room, `👑 部屋主を ${nextHost.name} へ引き継ぎました。`);
   return true;
 }
@@ -3416,9 +3438,13 @@ function finishAfterPick(room, winnerPid){
   room.pendingPick=null;
   room.lastPickTargetRebroadcastAt=0;
   room.lastPairChoiceRebroadcastAt=0;
+  // ピック結果用の専用演出はここで完了済み。次トリックへの再接続時に
+  // 古いペア／マッド演出を再生しないよう、公開状態から取り除く。
+  room.pairCleanEvent=null;
+  room.madPigEvent=null;
   if(checkRoundEnd(room)){ room.spotlightEvent=null; broadcast(room); return; }
   if(!room.spotlightEvent && fallbackPlans.length){
-    triggerSpotlight(room,fallbackPlans,{source:'trick',durationMs:1800});
+    triggerSpotlight(room,fallbackPlans,{source:'trick',durationMs:SPOTLIGHT_DISPLAY_MS});
   }
   room.trick=[];room.leadSuit=null;
   if(!Number.isInteger(winnerPid) || winnerPid<0 || winnerPid>=room.players.length) winnerPid=room.lead ?? 0;
@@ -3703,6 +3729,9 @@ function checkRoundEnd(room, preferredPid=null){
   room.trickReview = null;
   room.trick = [];
   room.leadSuit = null;
+  room.lastTrick = null;
+  room.pairCleanEvent = null;
+  room.madPigEvent = null;
 
   const reasonText = onlyJoker
     ? `${out.name} の手番開始時、袋にババブタ1枚だけが残っていました。`
@@ -3731,6 +3760,8 @@ function checkRoundEnd(room, preferredPid=null){
     if(out.cpu) say(room, outPid, onlyJoker ? sample(['ババブタだけ残った…終わった…','袋の中がババブタだけ！？']) : sample(['上がり！ごちそう山を数える！','決着！点数計算だ！']), {eventKey:onlyJoker?'baba':'finish'});
     log(room, room.message);
     score(room);
+    // 旧ホストが切断中でも、接続中の参加者が結果画面から再戦できるようにする。
+    ensureLobbyHost(room);
   }
   return true;
 }

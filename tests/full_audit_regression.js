@@ -76,6 +76,16 @@ const baseRoom = (players, extra={})=>({
 }
 
 
+// A disconnected host on the final result must not block rematch for connected players.
+{
+  const a=player('FA'); a.ws=null;
+  const b=player('FB');
+  const room=baseRoom([a,b],{phase:'finished',hostId:'FA'});
+  assert.strictEqual(api.ensureLobbyHost(room),true);
+  assert.strictEqual(room.hostId,'FB');
+  assert.match(room.message,/再戦/);
+}
+
 // When nobody is connected, host authority must not move to another disconnected seat.
 {
   const a=player('HA'); a.ws=null;
@@ -271,7 +281,8 @@ const baseRoom = (players, extra={})=>({
 }
 
 // Client regressions: two commentary rows, non-blocking rapid taps, accurate result labels and tie ranks.
-assert.match(html,/state\.commentary\|\|\[\]\)\.slice\(0,2\)/);
+assert.match(html,/state\.commentary\|\|\[\]\)\.filter\([\s\S]*\.slice\(0,2\)/);
+assert.match(html,/__commentaryExpiryTimer/);
 assert.match(html,/speech-bubble:nth-child\(n\+3\)/);
 assert.match(html,/ev\.type==='click' && now - __lastPickTargetPointerAt < 500/);
 assert.doesNotMatch(html,/__lastPickTargetTapAt/);
