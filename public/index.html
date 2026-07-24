@@ -7026,6 +7026,122 @@ body.finished-mode .final-actions .btn{
   }
 }
 
+
+
+/* =========================================================
+   v31 Final result contrast and light-surface text safety
+   - Gameplay uses a light foreground on the dark table.
+   - Final-result cards use light backgrounds, so all result text must opt
+     into a dark palette instead of inheriting the gameplay foreground.
+   ========================================================= */
+body.finished-mode .score-screen > h2{
+  color:#fff4e8!important;
+  text-shadow:0 2px 5px rgba(0,0,0,.48)!important;
+}
+body.finished-mode .final-stage{
+  color:#3b251d!important;
+  color-scheme:light;
+}
+body.finished-mode .final-stage .podium-card,
+body.finished-mode .final-stage .break-card,
+body.finished-mode .final-stage .score-compact,
+body.finished-mode .final-stage .score{
+  color:#3b251d!important;
+  text-shadow:none!important;
+}
+body.finished-mode .final-stage .podium-name{
+  color:#4a2923!important;
+}
+body.finished-mode .final-stage .podium-score{
+  color:#704500!important;
+  background:#fffdf8!important;
+}
+body.finished-mode .final-stage .break-card h4{
+  color:#a5363b!important;
+}
+body.finished-mode .final-stage .break-row{
+  color:#50352d!important;
+}
+body.finished-mode .final-stage .break-row span{
+  color:#6b493d!important;
+  font-weight:800;
+}
+body.finished-mode .final-stage .break-row b{
+  color:#281713!important;
+  font-weight:1000;
+}
+body.finished-mode .final-stage .break-total{
+  color:#6a4300!important;
+  background:#fff1bd!important;
+}
+body.finished-mode .final-stage .score-compact{
+  border:1px solid #dfb896;
+  border-radius:16px;
+  overflow-x:auto;
+  background:#fffaf4!important;
+  -webkit-overflow-scrolling:touch;
+}
+body.finished-mode .final-stage table.score{
+  min-width:760px;
+  color:#39241d!important;
+  background:#fffdf9!important;
+}
+body.finished-mode .final-stage table.score th{
+  color:#5d2630!important;
+  background:#f8dfca!important;
+  border-color:#dcae8a!important;
+  font-weight:1000;
+}
+body.finished-mode .final-stage table.score td{
+  color:#3a251e!important;
+  background:rgba(255,255,255,.9)!important;
+  border-color:#dfb896!important;
+}
+body.finished-mode .final-stage table.score tr:nth-child(even) td{
+  background:#f8f2e8!important;
+}
+body.finished-mode .final-stage table.score td b{
+  color:#291712!important;
+}
+body.finished-mode .final-stage .final-comment{
+  color:#5b3d1c!important;
+}
+body.finished-mode .final-stage .danger-badge{
+  text-shadow:none!important;
+}
+@media(max-width:720px){
+  body.finished-mode .final-stage table.score{
+    min-width:690px;
+    font-size:12px;
+  }
+  body.finished-mode .final-stage table.score th,
+  body.finished-mode .final-stage table.score td{
+    padding:7px 6px;
+  }
+}
+
+/* v32: touch target and action recovery polish */
+body.gameplay-mode.modern-game-ui .hud-button{min-width:44px!important;min-height:40px!important;padding-block:8px!important}
+body.gameplay-mode.modern-game-ui .hand-view-toggle{min-height:36px!important;min-width:60px!important;padding:5px 9px!important}
+body.gameplay-mode.modern-game-ui [data-initial-skip],
+body.gameplay-mode.modern-game-ui [data-pair-skip],
+body.gameplay-mode.modern-game-ui [data-pass-submit],
+body.gameplay-mode.modern-game-ui [data-pick-target-submit]{min-height:40px}
+body.gameplay-mode.modern-game-ui button[aria-busy="true"]{cursor:progress}
+@media(max-width:720px) and (orientation:portrait){
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hud-button{min-height:40px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .hand-view-toggle{min-height:36px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen.is-setup-mode .pass-actions .btn,
+  body.gameplay-mode.modern-game-ui.ui-phone.ui-phone-portrait .game-screen.is-setup-mode .initial-pair-actions .btn{min-height:40px!important}
+}
+@media(max-height:520px) and (orientation:landscape){
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hud-button{min-height:38px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .hand-view-toggle{min-height:30px!important;padding:3px 7px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-screen.is-setup-mode .pass-actions .btn,
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape .game-screen.is-setup-mode .initial-pair-actions .btn{min-height:34px!important}
+  body.gameplay-mode.modern-game-ui.ui-phone-landscape [data-pair-skip]{min-height:38px!important}
+}
+
 </style>
 </head>
 <body class="modern-game-ui">
@@ -8239,42 +8355,99 @@ document.addEventListener('visibilitychange', ()=>{
 
 // Edge/PCブラウザ対策：インラインonclickではなくイベント委任でピックする。
 // DOMのidやwindowプロパティとの名前衝突を避け、pointer/click両方に対応する。
-let __lastPickPointerAt = 0;
+const __actionPointerTimes = Object.create(null);
+const __actionRecoveryTimers = new Map();
+function shouldHandleActionEvent(ev, key){
+  if(!ev) return false;
+  const now=Date.now();
+  if(ev.type==='pointerup'){
+    if(ev.isPrimary === false) return false;
+    if(ev.pointerType === 'mouse' && ev.button !== 0) return false;
+    __actionPointerTimes[key]=now;
+    return true;
+  }
+  if(ev.type==='click'){
+    if(typeof ev.button === 'number' && ev.button !== 0) return false;
+    // Keyboard activation has detail=0 and must never be suppressed by a recent pointer action.
+    if(ev.detail === 0) return true;
+    if(now - Number(__actionPointerTimes[key] || 0) < 500) return false;
+    return true;
+  }
+  return false;
+}
+function scheduleActionRecovery(key, guard, restore, delay=4500){
+  const previous=__actionRecoveryTimers.get(key);
+  if(previous) window.clearTimeout(previous);
+  const timer=window.setTimeout(()=>{
+    __actionRecoveryTimers.delete(key);
+    if(typeof guard === 'function' && !guard()) return;
+    try{ restore?.(); }catch(e){}
+  },delay);
+  __actionRecoveryTimers.set(key,timer);
+}
+function cancelActionRecovery(key){
+  const timer=__actionRecoveryTimers.get(key);
+  if(timer) window.clearTimeout(timer);
+  __actionRecoveryTimers.delete(key);
+}
+function setButtonsBusy(selector, busy){
+  document.querySelectorAll(selector).forEach(btn=>{
+    btn.disabled=!!busy;
+    if(busy) btn.setAttribute('aria-busy','true');
+    else btn.removeAttribute('aria-busy');
+  });
+}
 function handlePickButtonEvent(ev){
   const btn = ev.target && ev.target.closest ? ev.target.closest('[data-pick-index]') : null;
   if(!btn || btn.disabled) return;
   if(state && (state.phase === 'initialPair' || state.phase === 'passing')) return;
-  const now = Date.now();
-  if(ev.type==='click' && now - __lastPickPointerAt < 500) return;
-  if(ev.type==='pointerup') __lastPickPointerAt = now;
+  if(!shouldHandleActionEvent(ev,'pick')) return;
   ev.preventDefault();
   btn.classList.add('is-picking');
-  btn.setAttribute('aria-busy','true');
-  document.querySelectorAll('#table .pick-card').forEach(cardBtn=>{ cardBtn.disabled=true; });
+  setButtonsBusy('#table .pick-card',true);
   effectVibrate(14);
+  const expectedWinner=state?.pendingPick?.winnerPid;
+  const expectedWeakest=state?.pendingPick?.weakestPid;
+  const expectedReadyAt=state?.pendingPick?.readyAt;
+  const restore=()=>{
+    document.querySelectorAll('#table .pick-card').forEach(cardBtn=>{
+      cardBtn.disabled=!isPickReady(state?.pendingPick);
+      cardBtn.classList.remove('is-picking');
+      cardBtn.removeAttribute('aria-busy');
+    });
+  };
   if(!requestPick(btn.dataset.pickIndex)){
-    btn.classList.remove('is-picking');
-    btn.removeAttribute('aria-busy');
-    document.querySelectorAll('#table .pick-card').forEach(cardBtn=>{ cardBtn.disabled=false; });
+    restore();
+  } else {
+    scheduleActionRecovery('pick',()=>{
+      const pp=state?.pendingPick;
+      return !!pp && !pp.result && !pp.pairChoice && pp.winnerPid===expectedWinner && pp.weakestPid===expectedWeakest && pp.readyAt===expectedReadyAt;
+    },restore);
   }
 }
 document.addEventListener('pointerup', handlePickButtonEvent);
 document.addEventListener('click', handlePickButtonEvent);
 
-let __lastPairPointerAt = 0;
 function handlePairChoiceEvent(ev){
   const btn = ev.target && ev.target.closest ? ev.target.closest('[data-pair-card-id],[data-pair-skip]') : null;
   if(!btn || btn.disabled) return;
-  const now = Date.now();
-  if(ev.type==='click' && now - __lastPairPointerAt < 500) return;
-  if(ev.type==='pointerup') __lastPairPointerAt = now;
+  if(!shouldHandleActionEvent(ev,'pair')) return;
   ev.preventDefault();
   const skip=btn.dataset.pairSkip === '1';
-  if(!skip){ btn.classList.add('is-cleansing'); btn.setAttribute('aria-busy','true'); effectVibrate([10,28,12]); }
-  document.querySelectorAll('#table [data-pair-card-id],#table [data-pair-skip]').forEach(choice=>{ choice.disabled=true; });
+  if(!skip){ btn.classList.add('is-cleansing'); effectVibrate([10,28,12]); }
+  setButtonsBusy('#table [data-pair-card-id],#table [data-pair-skip]',true);
+  const expectedDrawnId=state?.pendingPick?.pairChoice?.drawn?.id;
+  const restore=()=>{
+    document.querySelectorAll('#table [data-pair-card-id],#table [data-pair-skip]').forEach(choice=>{
+      choice.disabled=false;
+      choice.classList.remove('is-cleansing');
+      choice.removeAttribute('aria-busy');
+    });
+  };
   if(!requestPairChoice(skip ? null : btn.dataset.pairCardId, skip)){
-    btn.classList.remove('is-cleansing');btn.removeAttribute('aria-busy');
-    document.querySelectorAll('#table [data-pair-card-id],#table [data-pair-skip]').forEach(choice=>{ choice.disabled=false; });
+    restore();
+  } else {
+    scheduleActionRecovery('pair',()=>state?.pendingPick?.pairChoice?.drawn?.id===expectedDrawnId,restore);
   }
 }
 document.addEventListener('pointerup', handlePairChoiceEvent);
@@ -8284,16 +8457,12 @@ document.addEventListener('click', handlePairChoiceEvent);
 
 
 
-let __lastPickTargetPointerAt = 0;
-
 function handlePickTargetEvent(ev){
   const btn = ev.target && ev.target.closest ? ev.target.closest('[data-pick-target-card-id],[data-pick-target-submit]') : null;
   if(!btn || btn.disabled) return;
   const pp = state && state.pendingPick;
   if(!pp || !pp.targetSelectionRequired || pp.targetSelectionDone || state.yourIndex !== pp.weakestPid) return;
-  const now = Date.now();
-  if(ev.type==='click' && now - __lastPickTargetPointerAt < 500) return;
-  if(ev.type==='pointerup') __lastPickTargetPointerAt = now;
+  if(!shouldHandleActionEvent(ev,'pick-target')) return;
   ev.preventDefault();
 
   const need = Math.min(Number(pp.targetCount || 0), (me()?.hand || []).length);
@@ -8302,7 +8471,21 @@ function handlePickTargetEvent(ev){
       $('message').textContent = `ピック候補を${need}枚選んでください。`;
       return;
     }
-    requestPickTargets(pickTargetSelectedIds);
+    const expectedWinner=pp.winnerPid, expectedWeakest=pp.weakestPid;
+    setButtonsBusy('#table [data-pick-target-card-id],#table [data-pick-target-submit]',true);
+    const sent=requestPickTargets(pickTargetSelectedIds);
+    if(sent===false){
+      setButtonsBusy('#table [data-pick-target-card-id]',false);
+      updatePickTargetSelectionUI();
+    } else {
+      scheduleActionRecovery('pick-target',()=>{
+        const current=state?.pendingPick;
+        return !!current && current.targetSelectionRequired && !current.targetSelectionDone && current.winnerPid===expectedWinner && current.weakestPid===expectedWeakest;
+      },()=>{
+        setButtonsBusy('#table [data-pick-target-card-id]',false);
+        updatePickTargetSelectionUI();
+      });
+    }
     return;
   }
 
@@ -8321,19 +8504,26 @@ document.addEventListener('pointerup', handlePickTargetEvent);
 document.addEventListener('click', handlePickTargetEvent);
 
 
-let __lastPassPointerAt = 0;
-
 function handlePassThreeEvent(ev){
   const btn = ev.target && ev.target.closest ? ev.target.closest('[data-pass-card-id],[data-pass-submit]') : null;
   if(!btn || btn.disabled) return;
   if(!state || state.phase !== 'passing') return;
-  const now = Date.now();
-  if(ev.type==='click' && now - __lastPassPointerAt < 500) return;
-  if(ev.type==='pointerup') __lastPassPointerAt = now;
+  if(!shouldHandleActionEvent(ev,'pass-three')) return;
   ev.preventDefault();
 
   if(btn.dataset.passSubmit === '1'){
-    requestPassThree(passSelectedIds);
+    const selected=passSelectedIds.slice();
+    setButtonsBusy('[data-pass-card-id],[data-pass-submit]',true);
+    const sent=requestPassThree(selected);
+    if(sent===false){
+      setButtonsBusy('[data-pass-card-id]',false);
+      updatePassSelectionUI();
+    } else {
+      scheduleActionRecovery('pass-three',()=>state?.phase==='passing' && !(state?.passDone||[]).includes(state?.yourIndex),()=>{
+        setButtonsBusy('[data-pass-card-id]',false);
+        updatePassSelectionUI();
+      });
+    }
     return;
   }
 
@@ -8352,20 +8542,26 @@ document.addEventListener('pointerup', handlePassThreeEvent);
 document.addEventListener('click', handlePassThreeEvent);
 
 
-let __lastInitialPairPointerAt = 0;
-
 function handleInitialPairEvent(ev){
   const btn = ev.target && ev.target.closest ? ev.target.closest('[data-initial-card-id],[data-initial-skip]') : null;
   if(!btn || btn.disabled) return;
   if(!state || state.phase !== 'initialPair') return;
-  const now = Date.now();
-  if(ev.type==='click' && now - __lastInitialPairPointerAt < 500) return;
-  if(ev.type==='pointerup') __lastInitialPairPointerAt = now;
+  if(!shouldHandleActionEvent(ev,'initial-pair')) return;
   ev.preventDefault();
 
   if(btn.dataset.initialSkip === '1'){
     initialPairSelectedId = null;
-    requestSkipInitialPairs();
+    setButtonsBusy('[data-initial-card-id],[data-initial-skip]',true);
+    const sent=requestSkipInitialPairs();
+    if(sent===false){
+      setButtonsBusy('[data-initial-card-id],[data-initial-skip]',false);
+      updateInitialPairSelectionUI();
+    } else {
+      scheduleActionRecovery('initial-pair',()=>state?.phase==='initialPair' && !(state?.initialPairDone||[]).includes(state?.yourIndex),()=>{
+        setButtonsBusy('[data-initial-card-id],[data-initial-skip]',false);
+        updateInitialPairSelectionUI();
+      });
+    }
     return;
   }
 
@@ -8384,8 +8580,19 @@ function handleInitialPairEvent(ev){
   if(initialPairSelectedId && initialPairSelectedId !== id){
     const first = hand.find(c=>c.id===initialPairSelectedId);
     if(first && !first.joker && first.rank === card.rank){
-      requestInitialPairDiscard(initialPairSelectedId, id);
+      const firstId=initialPairSelectedId;
+      setButtonsBusy('[data-initial-card-id],[data-initial-skip]',true);
+      const sent=requestInitialPairDiscard(firstId, id);
       initialPairSelectedId = null;
+      if(sent===false){
+        setButtonsBusy('[data-initial-card-id],[data-initial-skip]',false);
+        updateInitialPairSelectionUI();
+      } else {
+        scheduleActionRecovery('initial-pair',()=>state?.phase==='initialPair' && !(state?.initialPairDone||[]).includes(state?.yourIndex),()=>{
+          setButtonsBusy('[data-initial-card-id],[data-initial-skip]',false);
+          updateInitialPairSelectionUI();
+        });
+      }
       return;
     }
   }
@@ -8400,7 +8607,6 @@ document.addEventListener('click', handleInitialPairEvent);
 
 // Edge/PCブラウザ対策：手札カードもインラインonclickを使わずイベント委任で出す。
 // 2トリック目以降にDOM再描画やグローバル名解決の影響でクリック不能になる問題を防ぐ。
-let __lastCardPointerAt = 0;
 function playCardChoiceLabel(card){
   if(!card) return 'カード';
   if(card.joker) return 'ババブタ';
@@ -8426,9 +8632,7 @@ function updatePlaySelectionUI(){
 function handleHandCardEvent(ev){
   const btn = ev.target && ev.target.closest ? ev.target.closest('[data-card-id]') : null;
   if(!btn || btn.disabled) return;
-  const now = Date.now();
-  if(ev.type==='click' && now - __lastCardPointerAt < 500) return; // pointerup後の合成clickだけを除外
-  if(ev.type==='pointerup') __lastCardPointerAt = now;
+  if(!shouldHandleActionEvent(ev,'hand-card')) return;
   ev.preventDefault();
   const cardId = btn.dataset.cardId;
   if(!state || !Array.isArray(state.playableCardIds) || !state.playableCardIds.includes(cardId)){
@@ -8551,6 +8755,11 @@ function connect(after, isReconnect=false){
     if(msg.type==='state'){
       state=msg.state;
       if(!Array.isArray(state.playableCardIds)) state.playableCardIds = [];
+      if(!state.pendingPick || state.pendingPick.result || state.pendingPick.pairChoice) cancelActionRecovery('pick');
+      if(!state.pendingPick?.pairChoice) cancelActionRecovery('pair');
+      if(!state.pendingPick?.targetSelectionRequired || state.pendingPick.targetSelectionDone) cancelActionRecovery('pick-target');
+      if(state.phase!=='passing' || (state.passDone||[]).includes(state.yourIndex)) cancelActionRecovery('pass-three');
+      if(state.phase!=='initialPair' || (state.initialPairDone||[]).includes(state.yourIndex)) cancelActionRecovery('initial-pair');
       if(state.pendingPick && !state.pendingPick.clientReadyAt){
         const ms = Number(state.pendingPick.readyInMs ?? 0);
         state.pendingPick.clientReadyAt = Date.now() + Math.max(0, ms);
@@ -8643,11 +8852,22 @@ function playerAvatarHTML(i, cls=''){
   const p = state?.players?.[i];
   const klass = (`cpu-avatar-img ${cls || ''}`).trim();
   if(p?.avatarImage){
-    return `<img src="${escAttr(p.avatarImage)}" alt="${escAttr(p.name || 'CPU')}" class="${escAttr(klass)}">`;
+    return `<img src="${escAttr(p.avatarImage)}" alt="${escAttr(p.name || 'CPU')}" class="${escAttr(klass)}" data-player-avatar-fallback="${escAttr(p.avatar || face(i) || '🐷')}">`;
   }
   const emojiClass = (`cpu-avatar-emoji ${cls || ''}`).trim();
   return `<span class="${escAttr(emojiClass)}">${esc(face(i))}</span>`;
 }
+
+document.addEventListener('error', ev=>{
+  const img=ev.target;
+  if(!(img instanceof HTMLImageElement) || !img.dataset.playerAvatarFallback) return;
+  const fallback=document.createElement('span');
+  fallback.className=String(img.className || '').replace(/cpu-avatar-img/g,'cpu-avatar-emoji').trim() || 'cpu-avatar-emoji';
+  fallback.textContent=img.dataset.playerAvatarFallback || '🐷';
+  fallback.setAttribute('role','img');
+  fallback.setAttribute('aria-label',img.alt || 'CPU');
+  img.replaceWith(fallback);
+},true);
 
 function safeCssToken(value, fallback='default'){
   const token=String(value || '');
@@ -9505,6 +9725,9 @@ function updatePassSelectionUI(){
     const id = btn.dataset.passCardId;
     const selected = passSelectedIds.includes(id);
     btn.classList.toggle('pass-selected', selected);
+    btn.setAttribute('aria-pressed',selected?'true':'false');
+    const card=hand.find(c=>c.id===id);
+    if(card) btn.setAttribute('aria-label',`${playCardChoiceLabel(card)}を3枚パス候補に${selected?'選択済み':'選ぶ'}`);
   });
 
   const countEl = document.getElementById('passCount');
@@ -9530,6 +9753,8 @@ function updateInitialPairSelectionUI(){
     btn.classList.toggle('initial-selected', isSelected);
     btn.classList.toggle('initial-candidate', isCandidate);
     btn.classList.toggle('initial-dim', isDim);
+    btn.setAttribute('aria-pressed',isSelected?'true':'false');
+    if(card) btn.setAttribute('aria-label',`${playCardChoiceLabel(card)}を開始時ペア候補に${isSelected?'選択済み':'選ぶ'}`);
   });
   renderRoundStatus();
 }
@@ -9543,9 +9768,13 @@ function updatePickTargetSelectionUI(){
 
   document.querySelectorAll('[data-pick-target-card-id]').forEach(btn=>{
     const id = btn.dataset.pickTargetCardId;
-    btn.classList.toggle('selected', pickTargetSelectedIds.includes(id));
+    const selected=pickTargetSelectedIds.includes(id);
+    btn.classList.toggle('selected', selected);
+    btn.setAttribute('aria-pressed',selected?'true':'false');
+    const card=hand.find(c=>c.id===id);
+    if(card) btn.setAttribute('aria-label',`${playCardChoiceLabel(card)}をピック候補に${selected?'選択済み':'選ぶ'}`);
     const label = btn.querySelector('.small');
-    if(label) label.textContent = pickTargetSelectedIds.includes(id) ? '候補' : '選ぶ';
+    if(label) label.textContent = selected ? '候補' : '選ぶ';
   });
 
   const countEl = document.getElementById('pickTargetCountText');
@@ -9623,7 +9852,7 @@ function renderTable(){
         const targetVisualHand = stableShuffleIdsForPickTarget(hand, mode);
         for(const c of targetVisualHand){
           const selected = pickTargetSelectedIds.includes(c.id);
-          html += `<button type="button" class="pick-target-card ${selected?'selected':''}" data-pick-target-card-id="${escAttr(c.id)}">${cardHTML(c,true)}<div class="small">${selected?'候補':'選ぶ'}</div></button>`;
+          html += `<button type="button" class="pick-target-card ${selected?'selected':''}" data-pick-target-card-id="${escAttr(c.id)}" aria-label="${escAttr(playCardChoiceLabel(c))}をピック候補に${selected?'選択済み':'選ぶ'}" aria-pressed="${selected?'true':'false'}">${cardHTML(c,true)}<div class="small">${selected?'候補':'選ぶ'}</div></button>`;
         }
         html += `</div><button type="button" class="btn" ${count===need?'':'disabled'} data-pick-target-submit="1">この${need}枚を候補にする</button><div class="small">選んだ候補は、勝者側ではランダム順で表示されます。</div></div>`;
       } else {
@@ -9639,7 +9868,7 @@ function renderTable(){
       if(state.yourIndex===pp.winnerPid && Array.isArray(pc.candidates)){
         html += `<div class="pair-choice"><h4>ペアにするカードを選択</h4><div class="pair-cards" data-card-count="${pc.candidates.length}">`;
         for(const c of pc.candidates){
-          html += `<button type="button" class="pair-card-btn" data-pair-card-id="${escAttr(c.id)}">${cardHTML(c,true)}<div class="small">これと捨てる</div></button>`;
+          html += `<button type="button" class="pair-card-btn" data-pair-card-id="${escAttr(c.id)}" aria-label="${escAttr(playCardChoiceLabel(c))}と引いたカードをペア浄化する">${cardHTML(c,true)}<div class="small">これと捨てる</div></button>`;
         }
         html += `</div><button type="button" class="btn secondary skip-pair" data-pair-skip="1">スキップ</button></div>`;
       } else {
@@ -9650,7 +9879,7 @@ function renderTable(){
     } else if(state.yourIndex===pp.winnerPid){
       const cnt = pp.targetCandidateCount || l.handCount;
       html += `<div class="pick-status" data-pick-status="1">${ready?'1枚選んでピック！':`確認中…あと${waitSec}秒`}</div><div class="pick-hand" data-card-count="${cnt}">`;
-      for(let i=0;i<cnt;i++) html += `<button type="button" class="pick-card" ${ready?'':'disabled'} data-pick-index="${i}"><div class="playing-card back"></div></button>`;
+      for(let i=0;i<cnt;i++) html += `<button type="button" class="pick-card" ${ready?'':'disabled'} data-pick-index="${i}" aria-label="裏向きのピック候補 ${i+1}枚目を選ぶ"><div class="playing-card back"></div></button>`;
       html += `</div>`;
     } else {
       const cnt = pp.targetCandidateCount || l.handCount;
@@ -9861,7 +10090,7 @@ function renderHand(){
     if(state?.phase === 'passing'){
       const passable = !passDone && passableSet.has(c.id);
       const selectedPass = passSelectedIds.includes(c.id);
-      return `<button type="button" class="hand-card ${passable?'passable':'pass-disabled'} ${selectedPass?'pass-selected':''}" ${passable?'':'disabled'} data-pass-card-id="${escAttr(c.id)}">${cardHTML(c, passable)}</button>`;
+      return `<button type="button" class="hand-card ${passable?'passable':'pass-disabled'} ${selectedPass?'pass-selected':''}" ${passable?'':'disabled'} data-pass-card-id="${escAttr(c.id)}" aria-label="${escAttr(playCardChoiceLabel(c))}を3枚パス候補に${selectedPass?'選択済み':'選ぶ'}" aria-pressed="${selectedPass?'true':'false'}">${cardHTML(c, passable)}</button>`;
     }
     if(state?.phase === 'initialPair'){
       const done = Array.isArray(state.initialPairDone) && state.initialPairDone.includes(state.yourIndex);
@@ -9869,7 +10098,7 @@ function renderHand(){
       const selectedCls = selected === c.id ? 'initial-selected' : '';
       const candidate = selectedCard && !c.joker && c.id !== selected && c.rank === selectedCard.rank;
       const dim = selectedCard && !candidate && selected !== c.id ? 'initial-dim' : '';
-      return `<button type="button" class="hand-card ${selectable?'initial-selectable':'un'} ${selectedCls} ${candidate?'initial-candidate':''} ${dim}" ${selectable?'':'disabled'} data-initial-card-id="${escAttr(c.id)}">${cardHTML(c, selectable)}</button>`;
+      return `<button type="button" class="hand-card ${selectable?'initial-selectable':'un'} ${selectedCls} ${candidate?'initial-candidate':''} ${dim}" ${selectable?'':'disabled'} data-initial-card-id="${escAttr(c.id)}" aria-label="${escAttr(playCardChoiceLabel(c))}を開始時ペア候補に${selected===c.id?'選択済み':'選ぶ'}" aria-pressed="${selected===c.id?'true':'false'}">${cardHTML(c, selectable)}</button>`;
     }
     const can = playableSet.has(c.id);
     const selectedPlay=selectedPlayCardId===c.id;
@@ -9911,11 +10140,11 @@ function requestPickTargets(cardIds){
   if(!ws || ws.readyState!==1){
     $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
     scheduleReconnect(true);
-    return;
+    return false;
   }
-  if(send({type:'pickTargets', cardIds:(cardIds||[]).map(String)})){
-    pickTargetSelectedIds = [];
-  }
+  const sent=send({type:'pickTargets', cardIds:(cardIds||[]).map(String)});
+  if(sent) pickTargetSelectedIds = [];
+  return sent;
 }
 
 function requestPairChoice(cardId, skip){
@@ -9933,32 +10162,32 @@ function requestPassThree(cardIds){
   if(!ws || ws.readyState!==1){
     $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
     scheduleReconnect(true);
-    return;
+    return false;
   }
   if(!Array.isArray(cardIds) || cardIds.length !== 3){
     $('message').textContent = 'パスするカードを3枚選んでください。';
-    return;
+    return false;
   }
-  if(send({type:'passThree', cardIds:cardIds.map(String)})){
-    passSelectedIds = [];
-  }
+  const sent=send({type:'passThree', cardIds:cardIds.map(String)});
+  if(sent) passSelectedIds = [];
+  return sent;
 }
 
 function requestInitialPairDiscard(cardAId, cardBId){
   if(!ws || ws.readyState!==1){
     $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
     scheduleReconnect(true);
-    return;
+    return false;
   }
-  send({type:'initialPairDiscard', cardAId:String(cardAId), cardBId:String(cardBId)});
+  return send({type:'initialPairDiscard', cardAId:String(cardAId), cardBId:String(cardBId)});
 }
 function requestSkipInitialPairs(){
   if(!ws || ws.readyState!==1){
     $('message').textContent = '通信を再接続しています。復帰後にもう一度操作してください。';
     scheduleReconnect(true);
-    return;
+    return false;
   }
-  send({type:'skipInitialPairs'});
+  return send({type:'skipInitialPairs'});
 }
 
 function continueRound(){

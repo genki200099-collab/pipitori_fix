@@ -284,8 +284,9 @@ const baseRoom = (players, extra={})=>({
 assert.match(html,/state\.commentary\|\|\[\]\)\.filter\([\s\S]*\.slice\(0,2\)/);
 assert.match(html,/__commentaryExpiryTimer/);
 assert.match(html,/speech-bubble:nth-child\(n\+3\)/);
-assert.match(html,/ev\.type==='click' && now - __lastPickTargetPointerAt < 500/);
-assert.doesNotMatch(html,/__lastPickTargetTapAt/);
+assert.match(html,/shouldHandleActionEvent\(ev,'pick-target'\)/);
+assert.match(html,/ev\.pointerType === 'mouse' && ev\.button !== 0/);
+assert.doesNotMatch(html,/__lastPickTargetPointerAt|__lastPickTargetTapAt/);
 assert.match(html,/残り手札（ババ除く）/);
 assert.match(html,/同率.*位/);
 assert.doesNotMatch(html,/r\.normalHand\|\|0\)\*3/);
@@ -317,7 +318,7 @@ assert.doesNotMatch(html,/`-\$\{r\.jokerPenalty \?\? 0\}`/);
 assert.match(html,/compactPortrait \? 6 : 10/);
 assert.match(html,/function isTerminalReconnectError/);
 assert.match(html,/mode === 'expired'/);
-assert.match(html,/if\(send\(\{type:'pickTargets'/);
-assert.match(html,/if\(send\(\{type:'passThree'/);
+assert.match(html,/const sent=send\(\{type:'pickTargets'/);
+assert.match(html,/const sent=send\(\{type:'passThree'/);
 
 console.log('full audit regression: all assertions passed');

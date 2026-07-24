@@ -5,14 +5,14 @@
       "viewport": "iphone-se",
       "before": {
         "client": 524,
-        "scroll": 3980,
+        "scroll": 3427,
         "top": 0,
         "body": "hidden",
         "action": 246
       },
       "after": {
-        "top": 3456,
-        "max": 3456,
+        "top": 2903,
+        "max": 2903,
         "actionTop": 243,
         "actionBottom": 453,
         "visible": true,
@@ -42,14 +42,14 @@
       "viewport": "iphone-pro",
       "before": {
         "client": 808,
-        "scroll": 3461,
+        "scroll": 3248,
         "top": 0,
         "body": "hidden",
         "action": 554
       },
       "after": {
-        "top": 2653,
-        "max": 2653,
+        "top": 2440,
+        "max": 2440,
         "actionTop": 551,
         "actionBottom": 737,
         "visible": true,
@@ -79,14 +79,14 @@
       "viewport": "landscape",
       "before": {
         "client": 276,
-        "scroll": 3268,
+        "scroll": 3167,
         "top": 0,
         "body": "hidden",
         "action": 121
       },
       "after": {
-        "top": 2992,
-        "max": 2992,
+        "top": 2891,
+        "max": 2891,
         "actionTop": 19,
         "actionBottom": 205,
         "visible": true,
@@ -116,14 +116,14 @@
       "viewport": "desktop",
       "before": {
         "client": 664,
-        "scroll": 1806,
+        "scroll": 1808,
         "top": 0,
         "body": "hidden",
         "action": 535
       },
       "after": {
-        "top": 1142,
-        "max": 1142,
+        "top": 1144,
+        "max": 1144,
         "actionTop": 528,
         "actionBottom": 595,
         "visible": true,

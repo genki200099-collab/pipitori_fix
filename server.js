@@ -112,11 +112,13 @@ wsHeartbeatTimer.unref?.();
 wss.on('close', ()=>clearInterval(wsHeartbeatTimer));
 
 // 進行停止監視。タイマーが不発になった場合でも、待機状態を定期的に拾って進める。
-setInterval(()=>{
+const progressWatchdogTimer=setInterval(()=>{
   for(const room of rooms.values()){
     try { ensureRoomProgress(room); } catch(e) { console.error('progress watchdog error', e); }
   }
 }, 1000);
+progressWatchdogTimer.unref?.();
+wss.on('close',()=>clearInterval(progressWatchdogTimer));
 
 
 const SUIT_DEFINITIONS = Object.freeze({
@@ -2157,6 +2159,7 @@ function ensurePickFinish(room, pp, winnerPid, delay=2600){
     if(!room.pendingPick || room.pendingPick.token !== token) return;
     finishAfterPick(room, winnerPid);
   }, delay);
+  room.pickFinishTimer.unref?.();
 
   // 結果表示後に何らかのタイマー不発・状態ズレがあっても止まらないための保険。
   room.pickFinishFailSafeTimer = setTimeout(()=>{
@@ -2165,6 +2168,7 @@ function ensurePickFinish(room, pp, winnerPid, delay=2600){
     log(room, '⚠️ ピック結果後の進行が遅延したため、自動復旧しました。');
     finishAfterPick(room, winnerPid);
   }, delay + 4500);
+  room.pickFinishFailSafeTimer.unref?.();
 }
 function ensureReviewToPick(room, reviewToken, winnerPid, weakestPid){
   // レビュー→ピック遷移は、この関数で必ず予約する。
@@ -2176,6 +2180,7 @@ function ensureReviewToPick(room, reviewToken, winnerPid, weakestPid){
     room.reviewTimer = null;
     advanceReviewToPick(room, reviewToken, winnerPid, weakestPid);
   }, delay);
+  room.reviewTimer.unref?.();
 
   // 保険1：通常タイマーが実行されなかった場合でも進める。
   room.reviewFailSafeTimer = setTimeout(()=>{
@@ -2184,6 +2189,7 @@ function ensureReviewToPick(room, reviewToken, winnerPid, weakestPid){
     log(room, '⚠️ トリック結果確認からピックへの遷移が遅延したため、自動復旧しました。');
     advanceReviewToPick(room, reviewToken, winnerPid, weakestPid);
   }, delay + 3500);
+  room.reviewFailSafeTimer.unref?.();
 
   // 保険2：Renderなどでタイマーが遅延しても、短い監視でレビュー期限切れを拾う。
   if(room.reviewWatchTimer) clearInterval(room.reviewWatchTimer);
@@ -2196,6 +2202,7 @@ function ensureReviewToPick(room, reviewToken, winnerPid, weakestPid){
       advanceReviewToPick(room, reviewToken, winnerPid, weakestPid);
     }
   }, 500);
+  room.reviewWatchTimer.unref?.();
 }
 
 
@@ -2561,6 +2568,7 @@ function ensureCpuPick(room){
     if(!currentWinner || !currentWinner.cpu || !currentCandidates.length) return;
     doPick(room, currentWinner.id, chooseCpuPickIndex(room, room.pendingPick, currentCandidates));
   }, delay);
+  room.cpuPickTimer.unref?.();
 
   // 念のためのフェイルセーフ。何らかの理由で上のタイマーが外れても、数秒後に自動復旧。
   if(room.cpuPickFailSafeTimer) clearTimeout(room.cpuPickFailSafeTimer);
@@ -2574,6 +2582,7 @@ function ensureCpuPick(room){
     log(room, '⚠️ CPUピックが遅延したため、自動復旧しました。');
     doPick(room, currentWinner.id, chooseCpuPickIndex(room, room.pendingPick, currentCandidates));
   }, Math.max(3500, delay + 3500));
+  room.cpuPickFailSafeTimer.unref?.();
 }
 
 
@@ -2615,6 +2624,7 @@ function scheduleCpu(room){
   }
   if(isCpuTurn(room)){
     room.cpuTimer = setTimeout(()=>{ room.cpuTimer=null; doCpuPlay(room); }, 900);
+    room.cpuTimer.unref?.();
   }
 }
 
@@ -3357,7 +3367,12 @@ function doPick(room, playerId, targetIndex){
   const chooserPid = room.players.findIndex(p=>p.id===playerId);
   if(chooserPid !== pp.winnerPid) return;
   if(pp.targetSelectionRequired && !pp.targetSelectionDone) return;
-  if(Date.now() < pp.readyAt) return;
+  if(Date.now() < pp.readyAt){
+    const remaining=Math.max(1,Math.ceil((pp.readyAt-Date.now())/1000));
+    room.message=`ピック準備中です。あと${remaining}秒お待ちください。`;
+    broadcast(room);
+    return;
+  }
   const wp = room.players[pp.winnerPid], lp = room.players[pp.weakestPid];
   if(!wp || !lp){
     log(room, '⚠️ ピック対象のプレイヤー情報が不正だったため、ピックを終了します。');
